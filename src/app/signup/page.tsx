@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/utils/trpc";
+import { signIn } from "next-auth/react";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export default function SignupPage() {
     const role = formData.get("role") as "ARTIST" | "EXEC";
 
     try {
+      // Create the account
       await signup.mutateAsync({
         name,
         email,
@@ -30,7 +32,23 @@ export default function SignupPage() {
         role,
       });
 
-      router.push("/login");
+      // Sign in the user
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (!result?.ok) {
+        throw new Error("Failed to sign in");
+      }
+
+      // Redirect based on role
+      if (role === "ARTIST") {
+        router.push("/artist");
+      } else {
+        router.push("/exec");
+      }
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
