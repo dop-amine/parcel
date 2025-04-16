@@ -1,39 +1,22 @@
-FROM node:18-alpine AS base
+FROM node:20-slim
 
-# Install dependencies only when needed
-FROM base AS deps
 WORKDIR /app
 
-# Copy package files
+# Install dependencies first for better caching
 COPY package*.json ./
-
-# Install dependencies
 RUN npm install
 
-# Development image
-FROM base AS development
-WORKDIR /app
-
-# Install PostgreSQL client and tools
-RUN apk add --no-cache postgresql-client
-
-COPY --from=deps /app/node_modules ./node_modules
+# Copy the rest of the application
 COPY . .
 
-# Make the script executable
-RUN chmod +x scripts/init-db.sh
+# Generate Prisma Client
+RUN npx prisma generate
 
+# Build the Next.js application
+RUN npm run build
+
+# Expose the port the app runs on
 EXPOSE 3000
-CMD ["/bin/sh", "./scripts/init-db.sh"]
 
-# Production image
-FROM base AS production
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-
-# Make the script executable
-RUN chmod +x scripts/init-db.sh
-
-EXPOSE 3000
-CMD ["/bin/sh", "./scripts/init-db.sh"]
+# Start the application
+CMD ["npm", "start"]

@@ -25,7 +25,7 @@ export const messageRouter = router({
       }
 
       // Only the artist who owns the track can create a thread
-      if (track.artistId !== ctx.session.user.id) {
+      if (track.userId !== ctx.session.user.id) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You can only create threads for your own tracks",
@@ -56,7 +56,7 @@ export const messageRouter = router({
           track: {
             select: {
               id: true,
-              name: true,
+              title: true,
             },
           },
         },
@@ -154,7 +154,7 @@ export const messageRouter = router({
           track: {
             select: {
               id: true,
-              name: true,
+              title: true,
             },
           },
           messages: {
@@ -212,7 +212,7 @@ export const messageRouter = router({
           track: {
             select: {
               id: true,
-              name: true,
+              title: true,
             },
           },
         },

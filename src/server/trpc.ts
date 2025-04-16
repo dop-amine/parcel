@@ -1,54 +1,27 @@
-import { initTRPC, TRPCError } from '@trpc/server';
-import { type NextRequest } from 'next/server';
+import { initTRPC } from '@trpc/server';
+import { type CreateNextContextOptions } from '@trpc/server/adapters/next';
 import { getServerSession } from 'next-auth';
-import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
-import { type Session } from 'next-auth';
-import { type PrismaClient } from '@prisma/client';
+import { prisma } from './db';
 
-export type Context = {
-  prisma: PrismaClient;
-  session: Session | null;
-  headers: Headers;
-};
+export async function createContext(opts: CreateNextContextOptions) {
+  const session = await getServerSession(opts.req, opts.res, authOptions);
 
-export type CreateContextOptions = {
-  headers: Headers;
-  session: Session | null;
-};
-
-export async function createContextInner(opts: CreateContextOptions) {
   return {
-    headers: opts.headers,
-    session: opts.session,
+    session,
     prisma,
   };
 }
 
-export const createContext = async (opts: { req: NextRequest }) => {
-  const session = await getServerSession(authOptions);
+export type Context = Awaited<ReturnType<typeof createContext>>;
 
-  const contextInner = await createContextInner({
-    headers: opts.req.headers,
-    session,
-  });
-
-  return contextInner;
-};
-
-const t = initTRPC.context<typeof createContext>().create();
-
-const isAuthed = t.middleware(({ ctx, next }) => {
-  if (!ctx.session?.user) {
-    throw new TRPCError({ code: 'UNAUTHORIZED' });
-  }
-  return next({
-    ctx: {
-      session: { ...ctx.session, user: ctx.session.user },
-    },
-  });
-});
+const t = initTRPC.context<Context>().create();
 
 export const router = t.router;
 export const publicProcedure = t.procedure;
-export const protectedProcedure = t.procedure.use(isAuthed);
+export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
+  if (!ctx.session) {
+    throw new Error('Not authenticated');
+  }
+  return next();
+});

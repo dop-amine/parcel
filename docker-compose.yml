@@ -2,34 +2,24 @@ version: '3.8'
 
 services:
   app:
-    build:
-      context: .
-      target: development
+    build: .
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/timeless?schema=public
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/timeless
       - NEXTAUTH_URL=http://localhost:3000
-      - NEXTAUTH_SECRET=your-secret-key-here
-      - WATCHPACK_POLLING=true
-      - CHOKIDAR_USEPOLLING=true
+      - NEXTAUTH_SECRET=your-secret-key
     depends_on:
       - db
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/.next
-    stdin_open: true
-    tty: true
 
   db:
-    image: postgres:14
+    image: postgres:15
+    ports:
+      - "5432:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=timeless
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

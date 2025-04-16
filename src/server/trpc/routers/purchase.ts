@@ -38,11 +38,10 @@ export const purchaseRouter = router({
         include: {
           track: {
             include: {
-              artist: {
+              user: {
                 select: {
                   id: true,
                   name: true,
-                  email: true,
                 },
               },
             },
@@ -61,16 +60,14 @@ export const purchaseRouter = router({
         include: {
           track: {
             include: {
-              artist: {
+              user: {
                 select: {
                   id: true,
                   name: true,
-                  email: true,
                 },
               },
             },
           },
-          contract: true,
         },
       });
 
@@ -84,7 +81,7 @@ export const purchaseRouter = router({
       // Only the exec who made the purchase or the artist who owns the track can view it
       if (
         purchase.execId !== ctx.session.user.id &&
-        purchase.track.artistId !== ctx.session.user.id
+        purchase.track.userId !== ctx.session.user.id
       ) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -113,7 +110,7 @@ export const purchaseRouter = router({
             { execId: ctx.session.user.id },
             {
               track: {
-                artistId: ctx.session.user.id,
+                userId: ctx.session.user.id,
               },
             },
           ],
@@ -121,16 +118,14 @@ export const purchaseRouter = router({
         include: {
           track: {
             include: {
-              artist: {
+              user: {
                 select: {
                   id: true,
                   name: true,
-                  email: true,
                 },
               },
             },
           },
-          contract: true,
         },
         orderBy: {
           createdAt: "desc",
@@ -147,48 +142,5 @@ export const purchaseRouter = router({
         purchases,
         nextCursor,
       };
-    }),
-
-  updateStatus: protectedProcedure
-    .input(
-      z.object({
-        id: z.string(),
-        status: z.enum(["PENDING", "COMPLETED", "CANCELLED"]),
-      })
-    )
-    .mutation(async ({ input, ctx }) => {
-      const purchase = await ctx.prisma.purchase.findUnique({
-        where: { id: input.id },
-        include: {
-          track: true,
-        },
-      });
-
-      if (!purchase) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Purchase not found",
-        });
-      }
-
-      // Only the exec who made the purchase or the artist who owns the track can update it
-      if (
-        purchase.execId !== ctx.session.user.id &&
-        purchase.track.artistId !== ctx.session.user.id
-      ) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You don't have permission to update this purchase",
-        });
-      }
-
-      const updatedPurchase = await ctx.prisma.purchase.update({
-        where: { id: input.id },
-        data: {
-          status: input.status,
-        },
-      });
-
-      return updatedPurchase;
     }),
 });

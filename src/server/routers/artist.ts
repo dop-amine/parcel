@@ -1,15 +1,18 @@
 import { router, protectedProcedure } from "../trpc";
-import { type Context } from "../trpc";
 
 export const artistRouter = router({
-  getStats: protectedProcedure.query(async ({ ctx }: { ctx: Context }) => {
+  getStats: protectedProcedure.query(async ({ ctx }) => {
+    if (!ctx.session?.user?.id) {
+      throw new Error("Not authenticated");
+    }
+
     const userId = ctx.session.user.id;
 
-    const [totalTracks, totalEarnings, totalLicenses] = await Promise.all([
+    const [totalTracks, totalEarnings, totalPlays] = await Promise.all([
       ctx.prisma.track.count({
         where: { userId }
       }),
-      ctx.prisma.purchase.aggregate({
+      ctx.prisma.earning.aggregate({
         where: {
           track: {
             userId
@@ -19,7 +22,7 @@ export const artistRouter = router({
           amount: true
         }
       }),
-      ctx.prisma.purchase.count({
+      ctx.prisma.play.count({
         where: {
           track: {
             userId
@@ -31,7 +34,7 @@ export const artistRouter = router({
     return {
       totalTracks,
       totalEarnings: totalEarnings._sum.amount || 0,
-      totalLicenses
+      totalPlays
     };
   })
 });

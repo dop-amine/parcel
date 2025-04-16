@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { router, publicProcedure } from "../trpc";
-import { hash } from "bcrypt";
+import { hash } from "bcryptjs";
 import { TRPCError } from "@trpc/server";
 
 export const authRouter = router({

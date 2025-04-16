@@ -1,16 +1,20 @@
-import { type PropsWithChildren } from "react";
-import { Providers } from "./providers";
+import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { Providers } from "./providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata = {
-  title: "Timeless",
-  description: "A platform for timeless music",
+export const metadata: Metadata = {
+  title: "Timeless Music House",
+  description: "A platform for artists to share their music",
 };
 
-export default function RootLayout({ children }: PropsWithChildren) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>

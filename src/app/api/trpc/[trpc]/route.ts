@@ -1,14 +1,18 @@
-import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
-import { appRouter } from "@/server/routers/_app";
-import { createContext } from "@/server/trpc";
-import { type NextRequest } from "next/server";
+import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
+import { appRouter } from '@/server/api/root';
+import { prisma } from '@/server/db';
 
-const handler = (req: NextRequest) =>
+const handler = (req: Request) =>
   fetchRequestHandler({
-    endpoint: "/api/trpc",
+    endpoint: '/api/trpc',
     req,
     router: appRouter,
-    createContext: () => createContext({ req }),
+    createContext: async () => {
+      return {
+        session: null,
+        prisma,
+      };
+    },
   });
 
 export { handler as GET, handler as POST };

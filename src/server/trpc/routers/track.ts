@@ -6,15 +6,10 @@ export const trackRouter = router({
   create: protectedProcedure
     .input(
       z.object({
-        name: z.string(),
-        tags: z.array(z.string()),
-        bpm: z.number(),
-        mood: z.string(),
-        fileUrl: z.string(),
-        waveformUrl: z.string().optional(),
-        price: z.number(),
-        isExclusive: z.boolean(),
-        usageRights: z.string(),
+        title: z.string(),
+        description: z.string().optional(),
+        audioUrl: z.string(),
+        coverUrl: z.string().optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -28,7 +23,7 @@ export const trackRouter = router({
       const track = await ctx.prisma.track.create({
         data: {
           ...input,
-          artistId: ctx.session.user.id,
+          userId: ctx.session.user.id,
         },
       });
 
@@ -41,11 +36,10 @@ export const trackRouter = router({
       const track = await ctx.prisma.track.findUnique({
         where: { id: input.id },
         include: {
-          artist: {
+          user: {
             select: {
               id: true,
               name: true,
-              email: true,
             },
           },
         },
@@ -67,38 +61,27 @@ export const trackRouter = router({
         limit: z.number().min(1).max(100).default(10),
         cursor: z.string().optional(),
         search: z.string().optional(),
-        tags: z.array(z.string()).optional(),
-        bpm: z.number().optional(),
-        mood: z.string().optional(),
       })
     )
     .query(async ({ input, ctx }) => {
-      const { limit, cursor, search, tags, bpm, mood } = input;
+      const { limit, cursor, search } = input;
 
       const tracks = await ctx.prisma.track.findMany({
         take: limit + 1,
         cursor: cursor ? { id: cursor } : undefined,
-        where: {
-          AND: [
-            search
-              ? {
-                  OR: [
-                    { name: { contains: search } },
-                    { tags: { hasSome: [search] } },
-                  ],
-                }
-              : {},
-            tags ? { tags: { hasSome: tags } } : {},
-            bpm ? { bpm } : {},
-            mood ? { mood } : {},
-          ],
-        },
+        where: search
+          ? {
+              OR: [
+                { title: { contains: search } },
+                { description: { contains: search } },
+              ],
+            }
+          : undefined,
         include: {
-          artist: {
+          user: {
             select: {
               id: true,
               name: true,
-              email: true,
             },
           },
         },
@@ -124,13 +107,10 @@ export const trackRouter = router({
       z.object({
         id: z.string(),
         data: z.object({
-          name: z.string().optional(),
-          tags: z.array(z.string()).optional(),
-          bpm: z.number().optional(),
-          mood: z.string().optional(),
-          price: z.number().optional(),
-          isExclusive: z.boolean().optional(),
-          usageRights: z.string().optional(),
+          title: z.string().optional(),
+          description: z.string().optional(),
+          audioUrl: z.string().optional(),
+          coverUrl: z.string().optional(),
         }),
       })
     )
@@ -146,7 +126,7 @@ export const trackRouter = router({
         });
       }
 
-      if (track.artistId !== ctx.session.user.id) {
+      if (track.userId !== ctx.session.user.id) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You can only update your own tracks",
@@ -175,7 +155,7 @@ export const trackRouter = router({
         });
       }
 
-      if (track.artistId !== ctx.session.user.id) {
+      if (track.userId !== ctx.session.user.id) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You can only delete your own tracks",
