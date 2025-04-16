@@ -1,36 +1,143 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Timeless Music House
+
+Timeless is a modern music platform that connects artists with listeners. It provides a seamless experience for artists to upload, manage, and monetize their music, while offering listeners a curated space to discover and enjoy unique tracks.
+
+## Features
+
+- **Artist Dashboard**: Upload and manage your music tracks
+- **Music Discovery**: Explore and discover new music
+- **Secure Licensing**: Protect your music with our licensing system
+- **Real-time Analytics**: Track your music's performance
+- **User Authentication**: Secure sign-in with NextAuth.js
+- **Responsive Design**: Works seamlessly across all devices
+
+## Tech Stack
+
+- **Frontend**: Next.js 14 with App Router, React, TypeScript
+- **Styling**: Tailwind CSS
+- **Authentication**: NextAuth.js
+- **Database**: PostgreSQL with Prisma ORM
+- **Deployment**: Docker and Docker Compose
+- **Development**: Node.js, npm
+
+## Prerequisites
+
+- Node.js (v18 or later)
+- npm (v9 or later)
+- Docker and Docker Compose
+- PostgreSQL (if running locally without Docker)
 
 ## Getting Started
 
-First, run the development server:
+### Option 1: Using Docker (Recommended)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/timeless.git
+   cd timeless
+   ```
+
+2. Create a `.env` file in the root directory with the following variables:
+   ```
+   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/timeless?schema=public"
+   NEXTAUTH_URL="http://localhost:3000"
+   NEXTAUTH_SECRET="your-secret-key"
+   ```
+
+3. Start the application using Docker Compose:
+   ```bash
+   docker-compose up -d
+   ```
+
+4. Run database migrations:
+   ```bash
+   docker-compose exec app npx prisma migrate dev
+   ```
+
+5. The application will be available at `http://localhost:3000`
+
+### Option 2: Local Development
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/timeless.git
+   cd timeless
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Create a `.env` file in the root directory with the following variables:
+   ```
+   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/timeless?schema=public"
+   NEXTAUTH_URL="http://localhost:3000"
+   NEXTAUTH_SECRET="your-secret-key"
+   ```
+
+4. Start PostgreSQL locally (if not already running)
+
+5. Run database migrations:
+   ```bash
+   npx prisma migrate dev
+   ```
+
+6. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+7. The application will be available at `http://localhost:3000`
+
+## Project Structure
+
+```
+timeless/
+├── src/
+│   ├── app/              # Next.js app router pages
+│   ├── components/       # React components
+│   ├── lib/             # Utility functions and configurations
+│   ├── prisma/          # Database schema and migrations
+│   └── types/           # TypeScript type definitions
+├── public/              # Static assets
+├── prisma/             # Prisma configuration
+├── .env                # Environment variables
+├── .gitignore          # Git ignore rules
+├── docker-compose.yml  # Docker Compose configuration
+├── Dockerfile          # Docker configuration
+├── next.config.js      # Next.js configuration
+├── package.json        # Project dependencies
+└── README.md           # Project documentation
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Development Workflow
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Create a new branch for your feature:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. Make your changes and commit them:
+   ```bash
+   git add .
+   git commit -m "Description of your changes"
+   ```
 
-## Learn More
+3. Push your changes and create a pull request
 
-To learn more about Next.js, take a look at the following resources:
+## Contributing
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a new Pull Request
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## License
 
-## Deploy on Vercel
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Support
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+For support, please open an issue in the GitHub repository or contact the maintainers.
