@@ -65,6 +65,10 @@ model Track {
   description String?
   audioUrl    String
   coverUrl    String?
+  bpm         Int?
+  duration    Int       // Duration in seconds
+  genres      String[]  // Array of genre tags
+  moods       String[]  // Array of mood tags
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   plays       Play[]

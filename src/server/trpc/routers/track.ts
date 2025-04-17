@@ -10,6 +10,9 @@ export const trackRouter = router({
         description: z.string().optional(),
         audioUrl: z.string(),
         coverUrl: z.string().optional(),
+        duration: z.number().min(0),
+        genres: z.array(z.string()).min(1),
+        moods: z.array(z.string()).optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -23,6 +26,7 @@ export const trackRouter = router({
       const track = await ctx.prisma.track.create({
         data: {
           ...input,
+          moods: input.moods || [],
           userId: ctx.session.user.id,
         },
       });
