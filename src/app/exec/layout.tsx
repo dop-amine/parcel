@@ -4,7 +4,7 @@ import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export default function ArtistLayout({
+export default function ExecLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -13,12 +13,10 @@ export default function ArtistLayout({
   const pathname = usePathname();
 
   const navigation = [
-    { name: "Dashboard", href: "/artist" },
+    { name: "Dashboard", href: "/exec" },
     { name: "Explore", href: "/explore" },
-    { name: "Upload Track", href: "/artist/upload" },
-    { name: "My Tracks", href: "/artist/tracks" },
-    { name: "Messages", href: "/artist/messages" },
-    { name: "Earnings", href: "/artist/earnings" },
+    { name: "Messages", href: "/exec/messages" },
+    { name: "Purchases", href: "/exec/purchases" },
   ];
 
   return (
@@ -28,7 +26,7 @@ export default function ArtistLayout({
           <div className="flex justify-between h-16">
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
-                <Link href="/artist" className="text-xl font-bold text-indigo-600">
+                <Link href="/exec" className="text-xl font-bold text-indigo-600">
                   Timeless
                 </Link>
               </div>
