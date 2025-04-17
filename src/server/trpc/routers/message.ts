@@ -99,12 +99,12 @@ export const messageRouter = router({
 
       const message = await ctx.prisma.message.create({
         data: {
-          threadId,
-          senderId: ctx.session.user.id,
+          messageThreadId: threadId,
+          userId: ctx.session.user.id,
           content,
         },
         include: {
-          sender: {
+          user: {
             select: {
               id: true,
               name: true,
@@ -240,10 +240,10 @@ export const messageRouter = router({
         take: limit + 1,
         cursor: cursor ? { id: cursor } : undefined,
         where: {
-          threadId,
+          messageThreadId: threadId,
         },
         include: {
-          sender: {
+          user: {
             select: {
               id: true,
               name: true,
