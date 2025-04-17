@@ -60,23 +60,28 @@ model Session {
 }
 
 model Track {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   title       String
   description String?
   audioUrl    String
   coverUrl    String?
   bpm         Int?
-  duration    Int       // Duration in seconds
-  genres      String[]  // Array of genre tags
-  moods       String[]  // Array of mood tags
+  duration    Float
+  genres      String[]
+  moods       String[]
+  waveformUrl String?  // URL to the waveform data in blob storage
+  waveformData Float[] // Array of waveform data points
   userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   plays       Play[]
   earnings    Earning[]
   messageThreads MessageThread[]
   purchases   Purchase[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  messages    Message[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model Play {
@@ -108,13 +113,16 @@ model MessageThread {
 }
 
 model Message {
-  id        String       @id @default(cuid())
-  content   String
-  threadId  String
-  thread    MessageThread @relation(fields: [threadId], references: [id])
-  senderId  String
-  sender    User         @relation(fields: [senderId], references: [id])
-  createdAt DateTime     @default(now())
+  id              String   @id @default(cuid())
+  content         String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  messageThreadId String
+  messageThread   MessageThread @relation(fields: [messageThreadId], references: [id])
+  trackId         String?
+  track           Track?   @relation(fields: [trackId], references: [id])
 }
 
 model Purchase {

@@ -1,10 +1,12 @@
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { GENRES, MOODS } from "@/constants/music";
 import { prisma } from "@/server/db";
 import { type Prisma } from "@prisma/client";
 import { uploadToBlob } from "@/lib/blob";
+import { put } from "@vercel/blob";
+import WaveSurfer from "wavesurfer.js";
 
 const genreEnum = z.enum(GENRES.map(g => g.id) as [string, ...string[]]);
 const moodEnum = z.enum(MOODS.map(m => m.id) as [string, ...string[]]);
@@ -223,53 +225,185 @@ export const trackRouter = createTRPCRouter({
   uploadAndCreate: protectedProcedure
     .input(
       z.object({
-        title: z.string().min(1, 'Title is required'),
-        description: z.string().optional(),
-        audioUrl: z.string().url('Invalid audio URL'),
+        title: z.string().min(1).max(100),
+        description: z.string().max(500).optional(),
+        genres: z.array(genreEnum).min(1),
+        moods: z.array(moodEnum).min(1),
         bpm: z.number().min(1).max(999).optional(),
+        audioUrl: z.string().url(),
         duration: z.number().min(0),
-        genres: z.array(genreEnum).min(1, 'At least one genre is required'),
-        moods: z.array(moodEnum).optional(),
+        waveformData: z.array(z.number()).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      console.log('Upload and create request received');
-      console.log('Session:', ctx.session);
+      const user = ctx.session.user;
 
-      if (!ctx.session?.user?.id) {
-        console.log('No session found');
+      if (user.role !== "ARTIST") {
         throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: 'You must be logged in to create tracks',
+          code: "FORBIDDEN",
+          message: "Only artists can upload tracks",
         });
       }
 
-      if (ctx.session.user.role !== 'ARTIST') {
-        console.log('User is not an artist:', ctx.session.user.role);
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Only artists can create tracks',
-        });
-      }
-
-      const trackData = {
-        title: input.title,
-        description: input.description,
-        audioUrl: input.audioUrl,
-        duration: input.duration,
-        genres: input.genres,
-        moods: input.moods || [],
-        userId: ctx.session.user.id,
-      };
-
-      if (input.bpm) {
-        Object.assign(trackData, { bpm: input.bpm });
-      }
-
-      console.log('Creating track with data:', trackData);
-
-      return prisma.track.create({
-        data: trackData,
+      // Create the track record
+      const track = await prisma.track.create({
+        data: {
+          title: input.title,
+          description: input.description,
+          genres: input.genres,
+          moods: input.moods,
+          bpm: input.bpm,
+          audioUrl: input.audioUrl,
+          duration: input.duration,
+          waveformData: input.waveformData,
+          userId: user.id,
+        },
       });
+
+      return track;
+    }),
+
+  getAllPublic: publicProcedure
+    .input(
+      z.object({
+        genres: z.array(z.string()).optional(),
+        moods: z.array(z.string()).optional(),
+        bpmMin: z.number().optional(),
+        bpmMax: z.number().optional(),
+        page: z.number().optional(),
+        limit: z.number().optional(),
+      })
+    )
+    .query(async ({ input }) => {
+      const { genres, moods, bpmMin, bpmMax, page = 1, limit = 10 } = input;
+
+      const tracks = await prisma.track.findMany({
+        where: {
+          AND: [
+            // Genre filter
+            genres?.length
+              ? {
+                  genres: {
+                    hasSome: genres,
+                  },
+                }
+              : {},
+            // Mood filter
+            moods?.length
+              ? {
+                  moods: {
+                    hasSome: moods,
+                  },
+                }
+              : {},
+            // BPM range filter
+            bpmMin !== undefined
+              ? {
+                  bpm: {
+                    gte: bpmMin,
+                  },
+                }
+              : {},
+            bpmMax !== undefined
+              ? {
+                  bpm: {
+                    lte: bpmMax,
+                  },
+                }
+              : {},
+          ],
+        },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          audioUrl: true,
+          coverUrl: true,
+          bpm: true,
+          duration: true,
+          genres: true,
+          moods: true,
+          createdAt: true,
+          userId: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      const total = await prisma.track.count({
+        where: {
+          AND: [
+            genres?.length
+              ? {
+                  genres: {
+                    hasSome: genres,
+                  },
+                }
+              : {},
+            moods?.length
+              ? {
+                  moods: {
+                    hasSome: moods,
+                  },
+                }
+              : {},
+            bpmMin !== undefined
+              ? {
+                  bpm: {
+                    gte: bpmMin,
+                  },
+                }
+              : {},
+            bpmMax !== undefined
+              ? {
+                  bpm: {
+                    lte: bpmMax,
+                  },
+                }
+              : {},
+          ],
+        },
+      });
+
+      return {
+        tracks: tracks.map(track => ({
+          ...track,
+          artist: track.user,
+        })),
+        total,
+        page,
+        limit,
+      };
+    }),
+
+  // Add a new procedure to get waveform data
+  getWaveformData: publicProcedure
+    .input(z.object({ trackId: z.string() }))
+    .query(async ({ input }) => {
+      const track = await prisma.track.findUnique({
+        where: { id: input.trackId },
+        select: {
+          waveformData: true,
+        },
+      });
+
+      if (!track) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Track not found",
+        });
+      }
+
+      return track.waveformData;
     }),
 });
