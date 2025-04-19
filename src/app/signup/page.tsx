@@ -1,14 +1,35 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { trpc } from "@/utils/trpc";
 import { signIn } from "next-auth/react";
 import { motion } from "framer-motion";
 import { Mic, Target } from "lucide-react";
 
-export default function SignupPage() {
+function LoadingState() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-black to-purple-900/20">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-md p-8 space-y-8 bg-gray-900/50 backdrop-blur-sm rounded-2xl border border-gray-800 shadow-xl"
+      >
+        <div className="text-center">
+          <div className="h-8 w-48 bg-gray-800 rounded animate-pulse mx-auto mb-2" />
+          <div className="h-4 w-32 bg-gray-800 rounded animate-pulse mx-auto" />
+        </div>
+        <div className="space-y-4">
+          <div className="h-12 bg-gray-800 rounded animate-pulse" />
+          <div className="h-12 bg-gray-800 rounded animate-pulse" />
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -200,5 +221,13 @@ export default function SignupPage() {
         )}
       </motion.div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <SignupForm />
+    </Suspense>
   );
 }
