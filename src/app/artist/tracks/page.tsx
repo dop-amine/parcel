@@ -9,7 +9,7 @@ import { Suspense } from 'react';
 function LoadingSpinner() {
   return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
     </div>
   );
 }
@@ -24,10 +24,10 @@ function TracksList() {
   if (tracks?.length === 0) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-xl font-semibold mb-4">No tracks uploaded yet</h2>
+        <h2 className="text-xl font-semibold text-white mb-4">No tracks uploaded yet</h2>
         <Link
           href="/artist/upload"
-          className="text-primary hover:underline"
+          className="text-purple-400 hover:text-purple-300 transition-colors"
         >
           Upload your first track
         </Link>
@@ -40,12 +40,12 @@ function TracksList() {
       {tracks?.map((track) => (
         <div
           key={track.id}
-          className="bg-card rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+          className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-lg overflow-hidden hover:bg-gray-800/50 transition-all"
         >
           <div className="p-4">
-            <h3 className="text-xl font-semibold mb-2">{track.title}</h3>
+            <h3 className="text-xl font-semibold text-white mb-2">{track.title}</h3>
             {track.description && (
-              <p className="text-muted-foreground mb-4 line-clamp-2">
+              <p className="text-gray-400 mb-4 line-clamp-2">
                 {track.description}
               </p>
             )}
@@ -53,25 +53,25 @@ function TracksList() {
               {track.genres.map((genre) => (
                 <span
                   key={genre}
-                  className="bg-primary/10 text-primary text-sm px-2 py-1 rounded"
+                  className="bg-purple-900/50 text-purple-200 text-sm px-2 py-1 rounded-full"
                 >
                   {genre}
                 </span>
               ))}
             </div>
-            <div className="flex justify-between items-center text-sm text-muted-foreground">
+            <div className="flex justify-between items-center text-sm text-gray-400">
               <span>{formatDistanceToNow(new Date(track.createdAt), { addSuffix: true })}</span>
               <span>{Math.floor(track.duration / 60)}:{String(Math.floor(track.duration % 60)).padStart(2, '0')}</span>
             </div>
           </div>
-          <div className="bg-muted p-4 flex justify-between items-center">
+          <div className="bg-gray-800/50 p-4 flex justify-between items-center">
             <div className="space-y-1">
-              <p className="text-sm font-medium">Plays: {track._count.plays}</p>
-              <p className="text-sm font-medium">Purchases: {track._count.purchases}</p>
+              <p className="text-sm font-medium text-gray-300">Plays: {track._count.plays}</p>
+              <p className="text-sm font-medium text-gray-300">Purchases: {track._count.purchases}</p>
             </div>
             <Link
               href={`/artist/tracks/${track.id}`}
-              className="text-primary hover:underline text-sm"
+              className="text-purple-400 hover:text-purple-300 transition-colors text-sm"
             >
               View Details
             </Link>
@@ -93,8 +93,8 @@ export default function ArtistTracks() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Please log in to view your tracks</h1>
-          <Link href="/auth/signin" className="text-primary hover:underline">
+          <h1 className="text-2xl font-bold text-white mb-4">Please log in to view your tracks</h1>
+          <Link href="/auth/signin" className="text-purple-400 hover:text-purple-300 transition-colors">
             Sign in
           </Link>
         </div>
@@ -106,8 +106,8 @@ export default function ArtistTracks() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Only artists can view tracks</h1>
-          <Link href="/" className="text-primary hover:underline">
+          <h1 className="text-2xl font-bold text-white mb-4">Only artists can view tracks</h1>
+          <Link href="/" className="text-purple-400 hover:text-purple-300 transition-colors">
             Return to home
           </Link>
         </div>
@@ -118,10 +118,10 @@ export default function ArtistTracks() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">My Tracks</h1>
+        <h1 className="text-4xl font-bold text-white">My Tracks</h1>
         <Link
           href="/artist/upload"
-          className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
+          className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors"
         >
           Upload New Track
         </Link>

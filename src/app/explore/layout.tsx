@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
 import DashboardLayout from "@/components/DashboardLayout";
 
-export default function ExecLayout({
+export default function ExploreLayout({
   children,
 }: {
   children: React.ReactNode;

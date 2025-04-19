@@ -1,87 +1,119 @@
 'use client';
 
-import { type Track, type User } from "@prisma/client";
-import { formatDistanceToNow } from "date-fns";
-import Link from "next/link";
-import Image from "next/image";
-import { useState, useEffect, useRef } from "react";
-import WaveformPlayer from "./WaveformPlayer";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Heart, MessageSquare, ShoppingCart, Play, Pause } from "lucide-react";
+import { motion } from "framer-motion";
+import { usePlayerStore } from "@/stores/playerStore";
 
 interface TrackCardProps {
   track: {
     id: string;
     title: string;
-    description: string | null;
-    audioUrl: string;
-    coverUrl: string | null;
-    bpm: number | null;
-    duration: number;
-    genres: string[];
-    moods: string[];
-    waveformData?: number[] | null;
-    createdAt: string | Date;
-    userId: string;
     artist: {
       id: string;
       name: string | null;
       image: string | null;
     };
-    url: string;
+    coverUrl: string | null;
+    audioUrl: string;
+    bpm: number | null;
+    genres: string[];
+    moods: string[];
   };
-  className?: string;
+  onClickTag?: (tag: string) => void;
 }
 
-const formatDuration = (seconds: number) => {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-};
-
-export default function TrackCard({ track, className }: TrackCardProps) {
-  const [isVisible, setIsVisible] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsVisible(entry.isIntersecting);
-      },
-      { threshold: 0.1 }
-    );
-
-    if (cardRef.current) {
-      observer.observe(cardRef.current);
-    }
-
-    return () => {
-      if (cardRef.current) {
-        observer.unobserve(cardRef.current);
-      }
-    };
-  }, []);
+export default function TrackCard({ track, onClickTag }: TrackCardProps) {
+  const { currentTrack, isPlaying, setTrack, togglePlay, setPlaying } = usePlayerStore();
+  const isCurrentTrack = currentTrack?.id === track.id;
 
   return (
-    <div ref={cardRef} className={cn('rounded-lg border bg-card p-4 shadow-sm', className)}>
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold">{track.title}</h3>
-        <p className="text-sm text-muted-foreground">by {track.artist.name}</p>
-        <p className="text-xs text-muted-foreground">
-          {new Date(track.createdAt).toLocaleDateString()}
-        </p>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="group relative overflow-hidden rounded-lg border border-gray-800 bg-gray-900/50 backdrop-blur-sm transition-transform hover:scale-[1.02]"
+    >
+      <div className="p-4">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-medium text-white">{track.title}</h3>
+            <p className="text-xs text-gray-400">{track.artist.name || "Unknown Artist"}</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              if (isCurrentTrack) {
+                togglePlay();
+              } else {
+                setTrack(track);
+                setPlaying(true);
+              }
+            }}
+            className="h-12 w-12 rounded-full bg-white/10 text-white hover:bg-white/20"
+          >
+            {isCurrentTrack && isPlaying ? (
+              <Pause className="h-6 w-6" />
+            ) : (
+              <Play className="h-6 w-6" />
+            )}
+          </Button>
+        </div>
+
+        <div className="mb-3 flex flex-wrap gap-1">
+          {track.genres.map((genre) => (
+            <Button
+              key={genre}
+              variant="outline"
+              size="sm"
+              onClick={() => onClickTag?.(genre)}
+              className="h-6 rounded-full border-gray-800 bg-gray-900/50 px-2 text-xs text-gray-400 hover:bg-gray-800/50"
+            >
+              {genre}
+            </Button>
+          ))}
+          {track.moods.map((mood) => (
+            <Button
+              key={mood}
+              variant="outline"
+              size="sm"
+              onClick={() => onClickTag?.(mood)}
+              className="h-6 rounded-full border-gray-800 bg-gray-900/50 px-2 text-xs text-gray-400 hover:bg-gray-800/50"
+            >
+              {mood}
+            </Button>
+          ))}
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-gray-400">{track.bpm || 0} BPM</span>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-gray-400 hover:text-white"
+            >
+              <Heart className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-gray-400 hover:text-white"
+            >
+              <MessageSquare className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-gray-400 hover:text-white"
+            >
+              <ShoppingCart className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
-      {isVisible && (
-        <WaveformPlayer
-          url={track.audioUrl}
-          trackId={track.id}
-          onPlay={() => {
-            // Handle play event
-          }}
-          onPause={() => {
-            // Handle pause event
-          }}
-        />
-      )}
-    </div>
+    </motion.div>
   );
 }

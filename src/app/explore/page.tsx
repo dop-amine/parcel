@@ -2,19 +2,18 @@
 
 import { useState } from "react";
 import { api } from "@/utils/api";
-import { GENRES, MOODS } from "@/constants/music";
 import TrackCard from "@/components/TrackCard";
-import { Button } from "@/components/ui/button";
+import SidebarFilters from "@/components/SidebarFilters";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
-import { SlidersHorizontal, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { usePlayerStore } from "@/stores/playerStore";
 
 export default function ExplorePage() {
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [bpmMin, setBpmMin] = useState<string>("");
   const [bpmMax, setBpmMax] = useState<string>("");
-  const [showFilters, setShowFilters] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data, isLoading, error } = api.track.getAllPublic.useQuery({
     page: 1,
@@ -26,29 +25,54 @@ export default function ExplorePage() {
     setSelectedMoods([]);
     setBpmMin("");
     setBpmMax("");
+    setSearchQuery("");
   };
 
-  const toggleGenre = (genreId: string) => {
-    setSelectedGenres(prev =>
-      prev.includes(genreId)
-        ? prev.filter(id => id !== genreId)
-        : [...prev, genreId]
-    );
+  const handleFilterUpdate = (updates: {
+    selectedGenres?: string[];
+    selectedMoods?: string[];
+    bpmMin?: string;
+    bpmMax?: string;
+    searchQuery?: string;
+  }) => {
+    if (updates.selectedGenres !== undefined) {
+      setSelectedGenres(updates.selectedGenres);
+    }
+    if (updates.selectedMoods !== undefined) {
+      setSelectedMoods(updates.selectedMoods);
+    }
+    if (updates.bpmMin !== undefined) {
+      setBpmMin(updates.bpmMin);
+    }
+    if (updates.bpmMax !== undefined) {
+      setBpmMax(updates.bpmMax);
+    }
+    if (updates.searchQuery !== undefined) {
+      setSearchQuery(updates.searchQuery);
+    }
   };
 
-  const toggleMood = (moodId: string) => {
-    setSelectedMoods(prev =>
-      prev.includes(moodId)
-        ? prev.filter(id => id !== moodId)
-        : [...prev, moodId]
-    );
+  const handleTagClick = (tag: string) => {
+    if (selectedGenres.includes(tag)) {
+      setSelectedGenres(selectedGenres.filter((g) => g !== tag));
+    } else if (selectedMoods.includes(tag)) {
+      setSelectedMoods(selectedMoods.filter((m) => m !== tag));
+    } else {
+      // Try to find the tag in genres first, then moods
+      const genre = data?.tracks.find((t) => t.genres.includes(tag));
+      if (genre) {
+        setSelectedGenres([...selectedGenres, tag]);
+      } else {
+        setSelectedMoods([...selectedMoods, tag]);
+      }
+    }
   };
 
-  const filteredTracks = data?.tracks.filter(track => {
-    if (selectedGenres.length > 0 && !selectedGenres.some(genre => track.genres.includes(genre))) {
+  const filteredTracks = data?.tracks.filter((track) => {
+    if (selectedGenres.length > 0 && !selectedGenres.some((genre) => track.genres.includes(genre))) {
       return false;
     }
-    if (selectedMoods.length > 0 && !selectedMoods.some(mood => track.moods.includes(mood))) {
+    if (selectedMoods.length > 0 && !selectedMoods.some((mood) => track.moods.includes(mood))) {
       return false;
     }
     if (bpmMin && track.bpm && track.bpm < parseInt(bpmMin)) {
@@ -57,21 +81,28 @@ export default function ExplorePage() {
     if (bpmMax && track.bpm && track.bpm > parseInt(bpmMax)) {
       return false;
     }
+    if (searchQuery && !track.title.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false;
+    }
     return true;
   });
 
-  const activeFilters = selectedGenres.length + selectedMoods.length + (bpmMin ? 1 : 0) + (bpmMax ? 1 : 0);
-
   if (isLoading) {
     return (
-      <div className="container mx-auto max-w-5xl px-4 py-6">
-        <div className="space-y-4">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="rounded-lg border bg-card p-4 shadow-sm">
-              <Skeleton className="mb-4 h-6 w-3/4" />
-              <Skeleton className="h-[60px] w-full" />
+      <div className="min-h-screen">
+        <div className="container mx-auto max-w-7xl px-4 py-8">
+          <div className="grid gap-6 md:grid-cols-4">
+            <div className="md:col-span-1">
+              <Skeleton className="h-[600px] rounded-lg" />
             </div>
-          ))}
+            <div className="md:col-span-3">
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {[...Array(6)].map((_, i) => (
+                  <Skeleton key={i} className="aspect-square rounded-lg" />
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -79,164 +110,66 @@ export default function ExplorePage() {
 
   if (error) {
     return (
-      <div className="container mx-auto max-w-5xl px-4 py-6">
-        <div className="rounded-md bg-destructive/10 p-4 text-destructive">
-          Error loading tracks: {error.message}
+      <div className="min-h-screen">
+        <div className="container mx-auto max-w-7xl px-4 py-8">
+          <div className="rounded-lg bg-red-900/50 p-4 text-red-400">
+            Error loading tracks: {error.message}
+          </div>
         </div>
-      </div>
-    );
-  }
-
-  if (!data?.tracks || data.tracks.length === 0) {
-    return (
-      <div className="container mx-auto max-w-5xl px-4 py-6">
-        <p className="text-muted-foreground">No tracks found.</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto max-w-5xl px-4 py-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Explore</h1>
-        <div className="flex items-center gap-2">
-          {activeFilters > 0 && (
-            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-              {activeFilters} {activeFilters === 1 ? 'filter' : 'filters'}
-            </span>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-            className="h-8 gap-1.5 px-2.5 text-sm"
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            Filters
-          </Button>
-        </div>
-      </div>
+    <div className="min-h-screen">
+      <div className="container mx-auto max-w-7xl px-4 py-8">
+        <div className="grid gap-6 md:grid-cols-4">
+          <div className="md:col-span-1">
+            <SidebarFilters
+              selectedGenres={selectedGenres}
+              selectedMoods={selectedMoods}
+              bpmMin={bpmMin}
+              bpmMax={bpmMax}
+              searchQuery={searchQuery}
+              onUpdate={handleFilterUpdate}
+              onClear={clearFilters}
+            />
+          </div>
 
-      {showFilters && (
-        <div className="mb-6 rounded-lg border bg-card/50 p-4 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-medium">Filters</h2>
-            {activeFilters > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
+          <div className="md:col-span-3">
+            {filteredTracks?.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="rounded-lg border border-gray-800 bg-gray-900/50 p-8 text-center"
               >
-                <X className="h-3.5 w-3.5" />
-                Clear
-              </Button>
+                <h3 className="mb-2 text-xl font-semibold text-white">No tracks found</h3>
+                <p className="text-gray-400">
+                  Try adjusting your filters or search query to find what you're looking for.
+                </p>
+              </motion.div>
+            ) : (
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <AnimatePresence>
+                  {filteredTracks?.map((track, index) => (
+                    <motion.div
+                      key={track.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <TrackCard
+                        track={track}
+                        onClickTag={handleTagClick}
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
             )}
           </div>
-
-          <div className="space-y-4">
-            <div>
-              <h3 className="mb-2 text-xs font-medium text-muted-foreground">Genres</h3>
-              <div className="flex flex-wrap gap-1.5">
-                {GENRES.map((genre) => (
-                  <Button
-                    key={genre.id}
-                    variant={selectedGenres.includes(genre.id) ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => toggleGenre(genre.id)}
-                    className={cn(
-                      "h-7 rounded-full px-3 text-xs transition-colors",
-                      selectedGenres.includes(genre.id)
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "hover:bg-muted"
-                    )}
-                  >
-                    {genre.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="mb-2 text-xs font-medium text-muted-foreground">Moods</h3>
-              <div className="flex flex-wrap gap-1.5">
-                {MOODS.map((mood) => (
-                  <Button
-                    key={mood.id}
-                    variant={selectedMoods.includes(mood.id) ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => toggleMood(mood.id)}
-                    className={cn(
-                      "h-7 rounded-full px-3 text-xs transition-colors",
-                      selectedMoods.includes(mood.id)
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "hover:bg-muted"
-                    )}
-                  >
-                    {mood.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="mb-2 text-xs font-medium text-muted-foreground">BPM Range</h3>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <div>
-                  <input
-                    id="bpmMin"
-                    type="number"
-                    value={bpmMin}
-                    onChange={(e) => setBpmMin(e.target.value)}
-                    min="0"
-                    max="999"
-                    placeholder="Min BPM"
-                    className="h-7 w-full rounded-md border border-input bg-background px-2 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  />
-                </div>
-                <div>
-                  <input
-                    id="bpmMax"
-                    type="number"
-                    value={bpmMax}
-                    onChange={(e) => setBpmMax(e.target.value)}
-                    min="0"
-                    max="999"
-                    placeholder="Max BPM"
-                    className="h-7 w-full rounded-md border border-input bg-background px-2 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
-      )}
-
-      <div className="space-y-3">
-        {filteredTracks?.map((track) => (
-          <TrackCard
-            key={track.id}
-            track={{
-              id: track.id,
-              title: track.title,
-              description: track.description,
-              audioUrl: track.audioUrl,
-              coverUrl: track.coverUrl,
-              bpm: track.bpm,
-              duration: track.duration,
-              genres: track.genres,
-              moods: track.moods,
-              createdAt: track.createdAt,
-              userId: track.userId,
-              artist: {
-                id: track.artist.id,
-                name: track.artist.name ?? "Unknown Artist",
-                image: track.artist.image,
-              },
-              url: track.audioUrl,
-            }}
-          />
-        ))}
       </div>
     </div>
   );
