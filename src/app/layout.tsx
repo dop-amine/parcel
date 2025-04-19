@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import "@/styles/globals.css";
+import "./globals.css";
 import "@/styles/audio-player.css";
 import { Providers } from "./providers";
+import StickyPlayer from "@/components/StickyPlayer";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Timeless Music House",
-  description: "A platform for artists to share their music",
+  title: "Parcel - Music Platform",
+  description: "Discover and share music with the world",
 };
 
 export default function RootLayout({
@@ -19,9 +20,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
-        <Providers>
-          {children}
-        </Providers>
+        <div className="min-h-screen bg-gradient-to-b from-black to-purple-900/20">
+          <Providers>
+            {children}
+          </Providers>
+          <StickyPlayer />
+        </div>
       </body>
     </html>
   );

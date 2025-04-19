@@ -5,6 +5,22 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/utils/api';
 import WaveSurfer from 'wavesurfer.js';
 import { GENRES, MOODS } from '@/constants/music';
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export default function TrackUpload() {
   const router = useRouter();
@@ -128,7 +144,7 @@ export default function TrackUpload() {
   return (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-400">
           Audio File
         </label>
         <div className="mt-1 flex items-center">
@@ -142,12 +158,12 @@ export default function TrackUpload() {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="inline-flex items-center px-4 py-2 border border-gray-800 text-sm font-medium rounded-md text-white bg-gray-900/50 hover:bg-gray-800/50 backdrop-blur-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
           >
             Select File
           </button>
           {file && (
-            <span className="ml-4 text-sm text-gray-500">
+            <span className="ml-4 text-sm text-gray-400">
               {file.name}
             </span>
           )}
@@ -155,111 +171,171 @@ export default function TrackUpload() {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-400">
           Title
         </label>
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          className="mt-1 block w-full rounded-md bg-gray-900/50 border-gray-800 text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500 sm:text-sm backdrop-blur-sm"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-400">
           Description
         </label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          className="mt-1 block w-full rounded-md bg-gray-900/50 border-gray-800 text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500 sm:text-sm backdrop-blur-sm"
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700">
-          BPM
-        </label>
-        <input
-          type="number"
-          value={bpm || ''}
-          onChange={(e) => setBpm(e.target.value ? parseInt(e.target.value) : undefined)}
-          min={60}
-          max={200}
-          className="mt-1 block w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700">
-          Genres
-        </label>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {GENRES.map((genre) => (
-            <button
-              key={genre.id}
-              type="button"
-              onClick={() => {
-                if (genres.includes(genre.id)) {
-                  setGenres(genres.filter(g => g !== genre.id));
-                } else {
-                  setGenres([...genres, genre.id]);
-                }
-              }}
-              className={`px-3 py-1 rounded-full text-sm font-medium ${
-                genres.includes(genre.id)
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-              }`}
-            >
-              {genre.label}
-            </button>
-          ))}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-400 mb-1">
+            BPM
+          </label>
+          <input
+            type="number"
+            value={bpm || ''}
+            onChange={(e) => setBpm(e.target.value ? parseInt(e.target.value) : undefined)}
+            min={60}
+            max={200}
+            className="block w-full rounded-md bg-gray-900/50 border-gray-800 text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500 sm:text-sm backdrop-blur-sm"
+          />
         </div>
-      </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700">
-          Moods
-        </label>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {MOODS.map((mood) => (
-            <button
-              key={mood.id}
-              type="button"
-              onClick={() => {
-                if (moods.includes(mood.id)) {
-                  setMoods(moods.filter(m => m !== mood.id));
-                } else {
-                  setMoods([...moods, mood.id]);
-                }
-              }}
-              className={`px-3 py-1 rounded-full text-sm font-medium ${
-                moods.includes(mood.id)
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-              }`}
-            >
-              {mood.label}
-            </button>
-          ))}
+        <div>
+          <label className="block text-sm font-medium text-gray-400 mb-1">
+            Genres
+          </label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                className="w-full justify-between bg-gray-900/50 border-gray-800 text-white hover:bg-gray-800/50"
+              >
+                {genres.length > 0
+                  ? `${genres.length} selected`
+                  : "Select genres..."}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-2 bg-gray-900/95 border-gray-800">
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  placeholder="Search genres..."
+                  className="w-full px-2 py-1 text-sm bg-gray-800/50 border border-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                />
+                <div className="max-h-[200px] overflow-auto space-y-1">
+                  {GENRES.map((genre) => (
+                    <button
+                      key={genre.id}
+                      onClick={() => {
+                        if (genres.includes(genre.id)) {
+                          setGenres(genres.filter(g => g !== genre.id));
+                        } else {
+                          setGenres([...genres, genre.id]);
+                        }
+                      }}
+                      className={cn(
+                        "flex items-center w-full px-2 py-1.5 text-sm rounded-md",
+                        genres.includes(genre.id)
+                          ? "bg-purple-600 text-white"
+                          : "text-gray-200 hover:bg-gray-800"
+                      )}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          genres.includes(genre.id) ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {genre.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-400 mb-1">
+            Moods
+          </label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                className="w-full justify-between bg-gray-900/50 border-gray-800 text-white hover:bg-gray-800/50"
+              >
+                {moods.length > 0
+                  ? `${moods.length} selected`
+                  : "Select moods..."}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-2 bg-gray-900/95 border-gray-800">
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  placeholder="Search moods..."
+                  className="w-full px-2 py-1 text-sm bg-gray-800/50 border border-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                />
+                <div className="max-h-[200px] overflow-auto space-y-1">
+                  {MOODS.map((mood) => (
+                    <button
+                      key={mood.id}
+                      onClick={() => {
+                        if (moods.includes(mood.id)) {
+                          setMoods(moods.filter(m => m !== mood.id));
+                        } else {
+                          setMoods([...moods, mood.id]);
+                        }
+                      }}
+                      className={cn(
+                        "flex items-center w-full px-2 py-1.5 text-sm rounded-md",
+                        moods.includes(mood.id)
+                          ? "bg-purple-600 text-white"
+                          : "text-gray-200 hover:bg-gray-800"
+                      )}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          moods.includes(mood.id) ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {mood.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
       {isUploading && (
-        <div className="w-full bg-gray-200 rounded-full h-2.5">
+        <div className="w-full bg-gray-800 rounded-full h-2.5">
           <div
-            className="bg-indigo-600 h-2.5 rounded-full"
+            className="bg-purple-600 h-2.5 rounded-full transition-all"
             style={{ width: `${uploadProgress}%` }}
           />
         </div>
       )}
 
       {error && (
-        <div className="rounded-md bg-red-50 p-4">
-          <div className="text-sm text-red-700">{error}</div>
+        <div className="rounded-md bg-red-900/50 border border-red-800 p-4">
+          <div className="text-sm text-red-400">{error}</div>
         </div>
       )}
 
@@ -267,7 +343,7 @@ export default function TrackUpload() {
         type="button"
         onClick={handleUpload}
         disabled={isUploading || !file || genres.length === 0 || moods.length === 0}
-        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {isUploading ? 'Uploading...' : 'Upload Track'}
       </button>

@@ -1,6 +1,6 @@
-# Timeless Music House
+# Parcel
 
-Timeless is a modern music platform that connects artists with listeners. It provides a seamless experience for artists to upload, manage, and monetize their music, while offering listeners a curated space to discover and enjoy unique tracks.
+Parcel is a modern music platform that connects artists with listeners. It provides a seamless experience for artists to upload, manage, and monetize their music, while offering listeners a curated space to discover and enjoy unique tracks.
 
 ## Features
 
@@ -29,19 +29,20 @@ Timeless is a modern music platform that connects artists with listeners. It pro
 
 ## Getting Started
 
-### Option 1: Using Docker (Recommended)
+#### Option 1: Using Docker (Recommended)
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/timeless.git
-   cd timeless
+   git clone https://github.com/yourusername/parcel.git
+   cd parcel
    ```
 
 2. Create a `.env` file in the root directory with the following variables:
    ```
-   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/timeless?schema=public"
+   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/parcel?schema=public"
    NEXTAUTH_URL="http://localhost:3000"
-   NEXTAUTH_SECRET="your-secret-key"
+   NEXTAUTH_SECRET="your-secure-secret-here"  # Generate with `openssl rand -base64 32`
+   BLOB_READ_WRITE_TOKEN="your-secure-token-here"  # From Vercel settings
    ```
 
 3. Start the application using Docker Compose:
@@ -56,27 +57,31 @@ Timeless is a modern music platform that connects artists with listeners. It pro
 
 5. The application will be available at `http://localhost:3000`
 
-### Option 2: Local Development
+#### Option 2: Local Development
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/timeless.git
-   cd timeless
+   git clone https://github.com/yourusername/parcel.git
+   cd parcel
    ```
 
-2. Install dependencies:
+2. Build the database:
+   ```bash
+   docker-compose up -d
+   ```
+
+3. Install dependencies:
    ```bash
    npm install
    ```
 
-3. Create a `.env` file in the root directory with the following variables:
+4. Create a `.env` file in the root directory with the following variables:
    ```
-   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/timeless?schema=public"
+   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/parcel?schema=public"
    NEXTAUTH_URL="http://localhost:3000"
-   NEXTAUTH_SECRET="your-secret-key"
+   NEXTAUTH_SECRET="your-secure-secret-here"  # Generate with `openssl rand -base64 32`
+   BLOB_READ_WRITE_TOKEN="your-secure-token-here"  # From Vercel settings
    ```
-
-4. Start PostgreSQL locally (if not already running)
 
 5. Run database migrations:
    ```bash
@@ -93,7 +98,7 @@ Timeless is a modern music platform that connects artists with listeners. It pro
 ## Project Structure
 
 ```
-timeless/
+parcel/
 ├── src/
 │   ├── app/              # Next.js app router pages
 │   ├── components/       # React components

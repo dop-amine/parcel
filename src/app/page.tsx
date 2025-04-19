@@ -19,7 +19,7 @@ export default function Home() {
             transition={{ duration: 0.8 }}
             className="text-6xl md:text-8xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400"
           >
-            Timeless
+            Parcel
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -61,7 +61,7 @@ export default function Home() {
             viewport={{ once: true }}
             className="text-4xl font-bold text-center mb-16"
           >
-            Why Choose Timeless?
+            Why Choose Parcel?
           </motion.h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
