@@ -12,10 +12,9 @@ import { useToast } from "@/hooks/use-toast";
 
 interface DealDetailsProps {
   deal: Deal;
-  onUpdate: (data: { action: string; changes: Partial<DealTerms> }) => Promise<void>;
 }
 
-export function DealDetails({ deal, onUpdate }: DealDetailsProps) {
+export function DealDetails({ deal }: DealDetailsProps) {
   const queryClient = useQueryClient();
   const { data: session } = useSession();
   const { toast } = useToast();
