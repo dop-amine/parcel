@@ -30,6 +30,9 @@ model User {
   execThreads   MessageThread[] @relation("ExecThreads")
   messages      Message[]
   purchases     Purchase[]
+  dealsAsArtist Deal[]    @relation("ArtistDeals")
+  dealsAsExec   Deal[]    @relation("ExecDeals")
+  chatMessages  ChatMessage[]
 }
 
 model Account {
@@ -69,8 +72,8 @@ model Track {
   duration    Float
   genres      String[]
   moods       String[]
-  waveformUrl String?  // URL to the waveform data in blob storage
-  waveformData Float[] // Array of waveform data points
+  waveformUrl String?
+  waveformData Float[]
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   plays       Play[]
@@ -78,6 +81,9 @@ model Track {
   messageThreads MessageThread[]
   purchases   Purchase[]
   messages    Message[]
+  deals       Deal[]
+  basePrice   Float?   // Base price for standard license
+  isNegotiable Boolean @default(false) // Whether price is negotiable
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -133,4 +139,55 @@ model Purchase {
   track     Track    @relation(fields: [trackId], references: [id])
   exec      User     @relation(fields: [execId], references: [id])
   createdAt DateTime @default(now())
+}
+
+model Deal {
+  id          String   @id @default(cuid())
+  state       String   @default("PENDING")
+  terms       Json
+  createdById String
+  createdByRole String
+  updatedAt   DateTime @updatedAt
+  trackId     String
+  artistId    String
+  execId      String
+  track       Track    @relation(fields: [trackId], references: [id])
+  artist      User     @relation("ArtistDeals", fields: [artistId], references: [id])
+  exec        User     @relation("ExecDeals", fields: [execId], references: [id])
+  history     DealHistory[]
+  chatMessages ChatMessage[]
+
+  @@index([trackId])
+  @@index([artistId])
+  @@index([execId])
+  @@index([state])
+}
+
+model DealHistory {
+  id            String   @id @default(cuid())
+  dealId        String
+  userId        String
+  userRole      String
+  action        String
+  previousState String
+  newState      String
+  changes       Json
+  timestamp     DateTime @default(now())
+  deal          Deal     @relation(fields: [dealId], references: [id])
+
+  @@index([dealId])
+  @@index([userId])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  content   String
+  dealId    String
+  userId    String
+  createdAt DateTime @default(now())
+  deal      Deal     @relation(fields: [dealId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([dealId])
+  @@index([userId])
 }

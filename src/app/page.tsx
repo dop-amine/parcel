@@ -6,6 +6,20 @@ import Link from "next/link";
 export default function Home() {
   return (
     <div className="min-h-screen bg-black text-white">
+      {/* Navigation */}
+      <motion.nav
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="absolute top-0 right-0 p-6 z-10"
+      >
+        <Link
+          href="/login"
+          className="px-6 py-2 border border-white text-white rounded-full text-base font-semibold hover:bg-white/10 transition-all duration-300"
+        >
+          Sign In
+        </Link>
+      </motion.nav>
+
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
