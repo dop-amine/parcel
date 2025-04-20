@@ -55,6 +55,8 @@ CREATE TABLE "Track" (
     "waveformUrl" TEXT,
     "waveformData" DOUBLE PRECISION[],
     "userId" TEXT NOT NULL,
+    "basePrice" DOUBLE PRECISION,
+    "isNegotiable" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -116,6 +118,47 @@ CREATE TABLE "Purchase" (
     CONSTRAINT "Purchase_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "Deal" (
+    "id" TEXT NOT NULL,
+    "state" TEXT NOT NULL DEFAULT 'PENDING',
+    "terms" JSONB NOT NULL,
+    "createdById" TEXT NOT NULL,
+    "createdByRole" TEXT NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "trackId" TEXT NOT NULL,
+    "artistId" TEXT NOT NULL,
+    "execId" TEXT NOT NULL,
+
+    CONSTRAINT "Deal_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "DealHistory" (
+    "id" TEXT NOT NULL,
+    "dealId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "userRole" TEXT NOT NULL,
+    "action" TEXT NOT NULL,
+    "previousState" TEXT NOT NULL,
+    "newState" TEXT NOT NULL,
+    "changes" JSONB NOT NULL,
+    "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "DealHistory_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ChatMessage" (
+    "id" TEXT NOT NULL,
+    "content" TEXT NOT NULL,
+    "dealId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ChatMessage_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
@@ -127,6 +170,30 @@ CREATE UNIQUE INDEX "Session_sessionToken_key" ON "Session"("sessionToken");
 
 -- CreateIndex
 CREATE INDEX "Track_userId_idx" ON "Track"("userId");
+
+-- CreateIndex
+CREATE INDEX "Deal_trackId_idx" ON "Deal"("trackId");
+
+-- CreateIndex
+CREATE INDEX "Deal_artistId_idx" ON "Deal"("artistId");
+
+-- CreateIndex
+CREATE INDEX "Deal_execId_idx" ON "Deal"("execId");
+
+-- CreateIndex
+CREATE INDEX "Deal_state_idx" ON "Deal"("state");
+
+-- CreateIndex
+CREATE INDEX "DealHistory_dealId_idx" ON "DealHistory"("dealId");
+
+-- CreateIndex
+CREATE INDEX "DealHistory_userId_idx" ON "DealHistory"("userId");
+
+-- CreateIndex
+CREATE INDEX "ChatMessage_dealId_idx" ON "ChatMessage"("dealId");
+
+-- CreateIndex
+CREATE INDEX "ChatMessage_userId_idx" ON "ChatMessage"("userId");
 
 -- AddForeignKey
 ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -166,3 +233,21 @@ ALTER TABLE "Purchase" ADD CONSTRAINT "Purchase_trackId_fkey" FOREIGN KEY ("trac
 
 -- AddForeignKey
 ALTER TABLE "Purchase" ADD CONSTRAINT "Purchase_execId_fkey" FOREIGN KEY ("execId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Deal" ADD CONSTRAINT "Deal_trackId_fkey" FOREIGN KEY ("trackId") REFERENCES "Track"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Deal" ADD CONSTRAINT "Deal_artistId_fkey" FOREIGN KEY ("artistId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Deal" ADD CONSTRAINT "Deal_execId_fkey" FOREIGN KEY ("execId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DealHistory" ADD CONSTRAINT "DealHistory_dealId_fkey" FOREIGN KEY ("dealId") REFERENCES "Deal"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChatMessage" ADD CONSTRAINT "ChatMessage_dealId_fkey" FOREIGN KEY ("dealId") REFERENCES "Deal"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ChatMessage" ADD CONSTRAINT "ChatMessage_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

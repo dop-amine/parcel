@@ -93,6 +93,8 @@ export const trackRouter = createTRPCRouter({
         duration: z.number().min(0),
         genres: z.array(genreEnum).min(1, 'At least one genre is required'),
         moods: z.array(moodEnum).optional(),
+        basePrice: z.number().min(0).optional(),
+        isNegotiable: z.boolean().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -124,6 +126,8 @@ export const trackRouter = createTRPCRouter({
         duration: input.duration,
         genres: input.genres,
         moods: input.moods || [],
+        basePrice: input.basePrice,
+        isNegotiable: input.isNegotiable,
         userId: ctx.session.user.id,
       };
 
@@ -233,6 +237,8 @@ export const trackRouter = createTRPCRouter({
         audioUrl: z.string().url(),
         duration: z.number().min(0),
         waveformData: z.array(z.number()).optional(),
+        basePrice: z.number().min(0).optional(),
+        isNegotiable: z.boolean().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -256,6 +262,8 @@ export const trackRouter = createTRPCRouter({
           audioUrl: input.audioUrl,
           duration: input.duration,
           waveformData: input.waveformData,
+          basePrice: input.basePrice,
+          isNegotiable: input.isNegotiable,
           userId: user.id,
         },
       });

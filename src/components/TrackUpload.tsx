@@ -31,6 +31,8 @@ export default function TrackUpload() {
   const [genres, setGenres] = useState<string[]>([]);
   const [moods, setMoods] = useState<string[]>([]);
   const [bpm, setBpm] = useState<number | undefined>();
+  const [price, setPrice] = useState("");
+  const [isNegotiable, setIsNegotiable] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -123,6 +125,8 @@ export default function TrackUpload() {
         audioUrl,
         duration: ws.getDuration(),
         waveformData,
+        basePrice: price ? parseInt(price) : undefined,
+        isNegotiable,
       });
 
       // Reset form
@@ -132,6 +136,8 @@ export default function TrackUpload() {
       setGenres([]);
       setMoods([]);
       setBpm(undefined);
+      setPrice('');
+      setIsNegotiable(false);
       setIsUploading(false);
       router.push('/artist/tracks');
     } catch (err) {
@@ -322,6 +328,38 @@ export default function TrackUpload() {
             </PopoverContent>
           </Popover>
         </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-white">Base Price ($)</label>
+        <input
+          type="number"
+          value={price}
+          onChange={(e) => {
+            const value = parseInt(e.target.value);
+            if (!isNaN(value)) {
+              setPrice(value.toString());
+            } else {
+              setPrice("");
+            }
+          }}
+          className="mt-1 block w-full rounded-md border border-gray-800 bg-gray-900 px-3 py-2 text-white focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+          placeholder="Enter base price"
+          min="0"
+          step="1"
+        />
+      </div>
+
+      <div className="flex items-center">
+        <input
+          type="checkbox"
+          checked={isNegotiable}
+          onChange={(e) => setIsNegotiable(e.target.checked)}
+          className="h-4 w-4 rounded border-gray-800 bg-gray-900 text-purple-600 focus:ring-purple-500"
+        />
+        <label className="ml-2 block text-sm text-white">
+          Price is negotiable
+        </label>
       </div>
 
       {isUploading && (

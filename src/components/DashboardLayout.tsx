@@ -18,7 +18,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const navigation = isArtist
     ? [
         { name: "Dashboard", href: "/artist" },
-        { name: "Explore", href: "/explore" },
         { name: "Upload", href: "/artist/upload" },
         { name: "My Tracks", href: "/artist/tracks" },
         { name: "Messages", href: "/artist/messages" },
@@ -32,7 +31,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black to-purple-900/20">
+    <>
       <motion.nav
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -87,6 +86,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         {children}
       </main>
-    </div>
+    </>
   );
 }

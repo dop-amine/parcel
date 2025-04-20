@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { type Session } from "next-auth";
 import superjson from "superjson";
 import { ZodError } from "zod";
+import { prisma } from "@/server/db";
 
 type CreateContextOptions = {
   session: Session | null;
@@ -12,6 +13,7 @@ type CreateContextOptions = {
 const createInnerTRPCContext = (opts: CreateContextOptions) => {
   return {
     session: opts.session,
+    db: prisma,
   };
 };
 
@@ -50,6 +52,7 @@ const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
   return next({
     ctx: {
       session: ctx.session,
+      db: ctx.db,
     },
   });
 });
