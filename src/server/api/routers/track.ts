@@ -175,6 +175,13 @@ export const trackRouter = createTRPCRouter({
             purchases: true,
           },
         },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
       },
     });
   }),

@@ -2,23 +2,15 @@
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Heart, MessageSquare, ShoppingCart, Play, Pause, Minimize2, Maximize2 } from "lucide-react";
+import { Heart, MessageSquare, ShoppingCart, Play, Pause, Minimize2, Maximize2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePlayerStore } from "@/stores/playerStore";
 import WaveformPlayer from "./WaveformPlayer";
 import { usePathname } from 'next/navigation';
-import { useEffect } from 'react';
 
 export default function StickyPlayer() {
   const pathname = usePathname();
-  const { currentTrack, isPlaying, isMinimized, togglePlay, toggleMinimized, setMinimized, setPlaying } = usePlayerStore();
-
-  // Auto-minimize when navigating away from explore page
-  useEffect(() => {
-    if (pathname !== '/explore') {
-      setMinimized(true);
-    }
-  }, [pathname, setMinimized]);
+  const { currentTrack, isPlaying, isMinimized, togglePlay, toggleMinimized, setMinimized, setPlaying, setTrack } = usePlayerStore();
 
   if (!currentTrack) return null;
 
@@ -96,6 +88,15 @@ export default function StickyPlayer() {
                 ) : (
                   <Minimize2 className="h-4 w-4" />
                 )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setTrack(null)}
+                className="text-gray-400 hover:text-white"
+                aria-label="Close Player"
+              >
+                <X className="h-4 w-4" />
               </Button>
             </div>
           </div>

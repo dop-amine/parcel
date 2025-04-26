@@ -19,7 +19,7 @@ interface PlayerState {
   currentTrack: Track | null;
   isPlaying: boolean;
   isMinimized: boolean;
-  setTrack: (track: Track) => void;
+  setTrack: (track: Track | null) => void;
   togglePlay: () => void;
   setPlaying: (state: boolean) => void;
   setMinimized: (state: boolean) => void;
