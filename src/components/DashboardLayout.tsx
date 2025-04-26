@@ -46,7 +46,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="flex items-center">
               <div className="flex-shrink-0 flex items-center">
                 <Link
-                  href={isArtist ? "/artist/dashboard" : "/exec"}
+                  href={isArtist ? "/artist/dashboard" : "/exec/dashboard"}
                   className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400"
                 >
                   Parcel
@@ -89,6 +89,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                               ? "bg-purple-700 text-white"
                               : "text-gray-300 hover:bg-gray-800 hover:text-white"
                           } px-4 py-2 text-sm font-medium transition-colors duration-200`}
+                          style={{ color: pathname === item.href ? '#fff' : '#d1d5db' }}
                           onClick={() => setMobileNavOpen(false)}
                         >
                           {item.name}
