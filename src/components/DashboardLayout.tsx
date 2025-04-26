@@ -25,7 +25,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       ]
     : [
         { name: "Dashboard", href: "/exec" },
-        { name: "Explore", href: "/explore" },
+        { name: "Explore", href: "/exec/explore" },
+        { name: "Library", href: "/exec/library" },
         { name: "Messages", href: "/exec/messages" },
         { name: "Purchases", href: "/exec/purchases" },
       ];
