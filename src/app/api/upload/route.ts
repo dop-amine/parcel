@@ -26,6 +26,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: `File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB` },
+        { status: 400 }
+      );
+    }
+
     // Validate file extension
     const fileExtension = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
     if (!ALLOWED_EXTENSIONS.has(fileExtension)) {
@@ -37,7 +45,11 @@ export async function POST(req: Request) {
 
     const token = process.env.BLOB_READ_WRITE_TOKEN;
     if (!token) {
-      return NextResponse.json({ error: 'Blob storage not configured' }, { status: 500 });
+      console.error('BLOB_READ_WRITE_TOKEN is not set');
+      return NextResponse.json(
+        { error: 'Storage service is not configured. Please contact support.' },
+        { status: 500 }
+      );
     }
 
     // Create a unique filename with prefix and metadata
@@ -83,13 +95,21 @@ export async function POST(req: Request) {
       access: 'public',
       token,
       contentType: file.type,
+    }).catch((error) => {
+      console.error('Blob upload error:', error);
+      throw new Error('Failed to upload file to storage');
     });
+
+    if (!blob?.url) {
+      throw new Error('Failed to get file URL after upload');
+    }
 
     return NextResponse.json({ url: blob.url });
   } catch (error) {
     console.error('Upload error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to upload file';
     return NextResponse.json(
-      { error: 'Failed to upload file' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

@@ -83,6 +83,11 @@ export class DealService {
       }
     });
 
+    // Broadcast the update to relevant users
+    if (global.wss) {
+      broadcastDealUpdate(global.wss, this.mapToDeal(updatedDeal));
+    }
+
     return this.mapToDeal(updatedDeal);
   }
 

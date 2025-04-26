@@ -3,30 +3,55 @@ import { api } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { DealStatusBadge } from "./DealStatusBadge";
 import { useSession } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Deal, DealTerms } from "@/types/deal";
 import { useToast } from "@/hooks/use-toast";
+import { useWebSocket } from '@/hooks/useWebSocket';
 
 interface DealDetailsProps {
   deal: Deal;
 }
 
-export function DealDetails({ deal }: DealDetailsProps) {
+export function DealDetails({ deal: initialDeal }: DealDetailsProps) {
   const queryClient = useQueryClient();
   const { data: session } = useSession();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
-  const [editedTerms, setEditedTerms] = useState<DealTerms>(deal.terms);
+  const [editedTerms, setEditedTerms] = useState<DealTerms>(initialDeal.terms);
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
+
+  // Initialize WebSocket connection
+  useWebSocket();
+
+  // Add a query to get the current deal state
+  const { data: deal } = api.deal.getDeal.useQuery(
+    { dealId: initialDeal.id },
+    {
+      initialData: initialDeal,
+      refetchOnWindowFocus: true,
+      refetchOnMount: true,
+      staleTime: 0,
+      refetchInterval: 1000, // Refetch every second to ensure we have the latest data
+    }
+  );
+
+  // Update editedTerms when deal changes
+  useEffect(() => {
+    if (deal) {
+      setEditedTerms(deal.terms);
+    }
+  }, [deal]);
 
   const isArtist = session?.user?.role === "ARTIST";
   const isExec = session?.user?.role === "EXEC";
   const isPending = deal.state === "PENDING";
   const isCountered = deal.state === "COUNTERED";
   const isAwaitingResponse = deal.state === "AWAITING_RESPONSE";
+  const isAccepted = deal.state === "ACCEPTED";
+  const isDeclined = deal.state === "DECLINED";
 
   // Check if user is part of this deal
   const isPartOfDeal = (isArtist && deal.artistId === session?.user?.id) ||
@@ -36,6 +61,7 @@ export function DealDetails({ deal }: DealDetailsProps) {
   const canDecline = isPartOfDeal && ((isArtist && (isPending || isAwaitingResponse)) ||
                     (isExec && (isPending || isCountered || isAwaitingResponse)));
   const canCounter = isPartOfDeal && ((isArtist && isPending) || (isExec && isAwaitingResponse));
+  const canCancel = isExec && isPartOfDeal && !isAccepted && !isDeclined; // Hide cancel button if accepted or declined
 
   const getAcceptButtonText = () => {
     if (isExec && isCountered) {
@@ -45,19 +71,68 @@ export function DealDetails({ deal }: DealDetailsProps) {
   };
 
   const updateDeal = api.deal.updateDealState.useMutation({
+    onMutate: async ({ dealId, newState, changes }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: [['deal', 'list']] });
+      await queryClient.cancelQueries({ queryKey: [['deal', 'getDeal'], { dealId }] });
+
+      // Snapshot the previous value
+      const previousDeals = queryClient.getQueryData([['deal', 'list']]);
+      const previousDeal = queryClient.getQueryData([['deal', 'getDeal'], { dealId }]);
+
+      // Optimistically update the deal
+      queryClient.setQueryData([['deal', 'getDeal'], { dealId }], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          state: newState,
+          terms: changes ? { ...old.terms, ...changes } : old.terms,
+          updatedAt: new Date().toISOString(),
+        };
+      });
+
+      // Also update the deal in the list
+      queryClient.setQueryData([['deal', 'list']], (old: any[]) => {
+        if (!old) return old;
+        return old.map((d) =>
+          d.id === dealId
+            ? {
+                ...d,
+                state: newState,
+                terms: changes ? { ...d.terms, ...changes } : d.terms,
+                updatedAt: new Date().toISOString(),
+              }
+            : d
+        );
+      });
+
+      // Return a context object with the snapshotted value
+      return { previousDeals, previousDeal };
+    },
+    onError: (err, newDeal, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousDeal) {
+        queryClient.setQueryData([['deal', 'getDeal'], { dealId: newDeal.dealId }], context.previousDeal);
+      }
+      if (context?.previousDeals) {
+        queryClient.setQueryData([['deal', 'list']], context.previousDeals);
+      }
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries();
       toast({
         title: "Success",
         description: "Deal state updated successfully",
       });
     },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+    onSettled: () => {
+      // Always refetch after error or success to ensure we have the correct data
+      queryClient.invalidateQueries({ queryKey: [['deal', 'list']] });
+      queryClient.invalidateQueries({ queryKey: [['deal', 'getDeal']] });
     },
   });
 
@@ -280,7 +355,7 @@ export function DealDetails({ deal }: DealDetailsProps) {
                     {getAcceptButtonText()}
                   </Button>
                 )}
-                {isExec && isPartOfDeal && (
+                {canCancel && (
                   <Button
                     onClick={handleCancel}
                     variant="destructive"
