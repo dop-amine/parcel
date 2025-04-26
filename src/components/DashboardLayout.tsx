@@ -95,6 +95,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                           {item.name}
                         </Link>
                       ))}
+                      {/* Username and Sign out for mobile */}
+                      {session?.user && (
+                        <div className="border-t border-gray-800 mt-2 pt-2 px-4 flex flex-col gap-2">
+                          <span className="text-xs text-gray-400 truncate">{session.user.name}</span>
+                          <button
+                            onClick={() => { setMobileNavOpen(false); signOut(); }}
+                            className="text-xs text-gray-400 hover:text-white text-left transition-colors duration-200"
+                          >
+                            Sign out
+                          </button>
+                        </div>
+                      )}
                     </nav>
                   </div>
                 )}
