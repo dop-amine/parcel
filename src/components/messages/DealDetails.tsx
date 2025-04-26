@@ -40,10 +40,10 @@ export function DealDetails({ deal: initialDeal }: DealDetailsProps) {
 
   // Update editedTerms when deal changes
   useEffect(() => {
-    if (deal) {
+    if (deal && !isEditing) {
       setEditedTerms(deal.terms);
     }
-  }, [deal]);
+  }, [deal, isEditing]);
 
   const isArtist = session?.user?.role === "ARTIST";
   const isExec = session?.user?.role === "EXEC";
@@ -61,7 +61,7 @@ export function DealDetails({ deal: initialDeal }: DealDetailsProps) {
   const canDecline = isPartOfDeal && ((isArtist && (isPending || isAwaitingResponse)) ||
                     (isExec && (isPending || isCountered || isAwaitingResponse)));
   const canCounter = isPartOfDeal && ((isArtist && isPending) || (isExec && isAwaitingResponse));
-  const canCancel = isExec && isPartOfDeal && !isAccepted && !isDeclined; // Hide cancel button if accepted or declined
+  const canCancel = isExec && isPartOfDeal && !isAccepted && !isDeclined && deal.state !== "CANCELLED";
 
   const getAcceptButtonText = () => {
     if (isExec && isCountered) {
@@ -199,6 +199,20 @@ export function DealDetails({ deal: initialDeal }: DealDetailsProps) {
     }
   };
 
+  function getDurationLabel(duration: number | string | undefined | null) {
+    const num = Number(duration);
+    switch (num) {
+      case 12: return '1 Year';
+      case 24: return '2 Years';
+      case 36: return '3 Years';
+      case 60: return '5 Years';
+      case 1200: return 'Perpetual';
+      default:
+        if (!duration || isNaN(num)) return '—';
+        return `${num} Months`;
+    }
+  }
+
   return (
     <div className="h-full flex flex-col">
       <div className="p-4 border-b border-gray-800">
@@ -277,26 +291,30 @@ export function DealDetails({ deal: initialDeal }: DealDetailsProps) {
               </div>
               <div>
                 <Label className="text-gray-300">Duration</Label>
-                <Select
-                  value={editedTerms.duration.toString()}
-                  onValueChange={(value) =>
-                    setEditedTerms({
-                      ...editedTerms,
-                      duration: parseInt(value),
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select duration" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="12">1 Year</SelectItem>
-                    <SelectItem value="24">2 Years</SelectItem>
-                    <SelectItem value="36">3 Years</SelectItem>
-                    <SelectItem value="60">5 Years</SelectItem>
-                    <SelectItem value="1200">Perpetual</SelectItem>
-                  </SelectContent>
-                </Select>
+                {(isArtist && isEditing) ? (
+                  <p className="text-gray-300">{getDurationLabel(Number(deal.terms.duration))}</p>
+                ) : (
+                  <Select
+                    value={editedTerms.duration.toString()}
+                    onValueChange={(value) =>
+                      setEditedTerms({
+                        ...editedTerms,
+                        duration: parseInt(value),
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select duration" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="12">1 Year</SelectItem>
+                      <SelectItem value="24">2 Years</SelectItem>
+                      <SelectItem value="36">3 Years</SelectItem>
+                      <SelectItem value="60">5 Years</SelectItem>
+                      <SelectItem value="1200">Perpetual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               <div>
                 <Label className="text-gray-300">Price ($)</Label>
@@ -328,7 +346,7 @@ export function DealDetails({ deal: initialDeal }: DealDetailsProps) {
               </div>
               <div>
                 <Label className="text-gray-300">Duration</Label>
-                <p className="text-white">{deal.terms.duration} months</p>
+                <p className="text-white">{getDurationLabel(Number(deal.terms.duration))}</p>
               </div>
               <div>
                 <Label className="text-gray-300">Price</Label>
