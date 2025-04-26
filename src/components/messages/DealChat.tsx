@@ -85,7 +85,7 @@ export function DealChat({ dealId, deal }: DealChatProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
         {messages?.map((msg) => {
           const isCurrentUser = msg.user.id === session?.user?.id;
           return (
@@ -116,7 +116,7 @@ export function DealChat({ dealId, deal }: DealChatProps) {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-4 border-t border-gray-800">
+      <div className="p-4 border-t border-gray-800 bg-gray-900/50">
         {isDealClosed ? (
           <div className="text-center text-gray-400 py-2">
             This deal is {deal.state.toLowerCase()}. No new messages can be sent.
