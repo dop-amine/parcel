@@ -13,9 +13,6 @@ interface WaveformPlayerProps {
   className?: string;
 }
 
-// Create a single WaveSurfer instance that persists across renders
-let globalWaveSurfer: WaveSurfer | null = null;
-
 export default function WaveformPlayer({
   url,
   isPlaying,
@@ -25,14 +22,19 @@ export default function WaveformPlayer({
   className,
 }: WaveformPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const wavesurferRef = useRef<WaveSurfer | null>(null);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [isReady, setIsReady] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Initialize WaveSurfer once
+  // Initialize WaveSurfer
   useEffect(() => {
-    if (!containerRef.current || globalWaveSurfer) return;
+    if (!containerRef.current) return;
+
+    // Create audio element
+    const audio = new Audio();
+    audioRef.current = audio;
 
     const wavesurfer = WaveSurfer.create({
       container: containerRef.current,
@@ -45,9 +47,10 @@ export default function WaveformPlayer({
       height: 40,
       normalize: true,
       backend: 'MediaElement',
+      media: audio,
     });
 
-    globalWaveSurfer = wavesurfer;
+    wavesurferRef.current = wavesurfer;
 
     const handleReady = () => {
       if (!wavesurfer) return;
@@ -65,36 +68,38 @@ export default function WaveformPlayer({
       onTimeUpdate?.(time);
     };
 
-    const handlePlay = () => {
-      onPlay?.();
-    };
-
-    const handlePause = () => {
-      onPause?.();
+    const handleError = (err: Error) => {
+      console.error('WaveSurfer error:', err);
+      setIsReady(false);
     };
 
     wavesurfer.on('ready', handleReady);
     wavesurfer.on('audioprocess', handleAudioProcess);
-    wavesurfer.on('play', handlePlay);
-    wavesurfer.on('pause', handlePause);
-
-    setIsInitialized(true);
+    wavesurfer.on('error', handleError);
 
     return () => {
       wavesurfer.pause();
       wavesurfer.unAll();
+      wavesurfer.destroy();
+      wavesurferRef.current = null;
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
     };
   }, []);
 
   // Handle URL changes
   useEffect(() => {
-    const wavesurfer = globalWaveSurfer;
-    if (!wavesurfer || !isInitialized) return;
+    const wavesurfer = wavesurferRef.current;
+    const audio = audioRef.current;
+    if (!wavesurfer || !audio) return;
 
     const loadAudio = async () => {
       try {
-        wavesurfer.pause();
         setIsReady(false);
+        wavesurfer.pause();
+        audio.src = url;
         await wavesurfer.load(url);
         setIsReady(true);
         if (isPlaying) {
@@ -107,28 +112,45 @@ export default function WaveformPlayer({
     };
 
     loadAudio();
-  }, [url, isInitialized, isPlaying]);
+  }, [url]);
 
   // Handle play/pause
   useEffect(() => {
-    const wavesurfer = globalWaveSurfer;
-    if (!wavesurfer || !isReady || !isInitialized) return;
+    const wavesurfer = wavesurferRef.current;
+    if (!wavesurfer || !isReady) return;
 
-    const togglePlayPause = async () => {
-      try {
-        const isCurrentlyPlaying = wavesurfer.isPlaying();
-        if (isPlaying && !isCurrentlyPlaying) {
-          await wavesurfer.play();
-        } else if (!isPlaying && isCurrentlyPlaying) {
-          wavesurfer.pause();
-        }
-      } catch (error) {
-        console.error('Error toggling play state:', error);
+    if (isPlaying) {
+      wavesurfer.play();
+    } else {
+      wavesurfer.pause();
+    }
+  }, [isPlaying, isReady]);
+
+  // Handle WaveSurfer events
+  useEffect(() => {
+    const wavesurfer = wavesurferRef.current;
+    if (!wavesurfer) return;
+
+    const handlePlay = () => {
+      if (!isPlaying) {
+        onPlay?.();
       }
     };
 
-    togglePlayPause();
-  }, [isPlaying, isReady, isInitialized]);
+    const handlePause = () => {
+      if (isPlaying) {
+        onPause?.();
+      }
+    };
+
+    wavesurfer.on('play', handlePlay);
+    wavesurfer.on('pause', handlePause);
+
+    return () => {
+      wavesurfer.un('play', handlePlay);
+      wavesurfer.un('pause', handlePause);
+    };
+  }, [isPlaying, onPlay, onPause]);
 
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60);

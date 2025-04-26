@@ -11,7 +11,7 @@ import { useEffect } from 'react';
 
 export default function StickyPlayer() {
   const pathname = usePathname();
-  const { currentTrack, isPlaying, isMinimized, togglePlay, toggleMinimized, setMinimized } = usePlayerStore();
+  const { currentTrack, isPlaying, isMinimized, togglePlay, toggleMinimized, setMinimized, setPlaying } = usePlayerStore();
 
   // Auto-minimize when navigating away from explore page
   useEffect(() => {
@@ -36,7 +36,15 @@ export default function StickyPlayer() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={togglePlay}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (isPlaying) {
+                    setPlaying(false);
+                  } else {
+                    setPlaying(true);
+                  }
+                }}
                 className="h-8 w-8 rounded-full bg-white/10 text-white hover:bg-white/20"
               >
                 {isPlaying ? (
