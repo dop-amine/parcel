@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { api } from "@/utils/api";
+import { useRouter } from "next/navigation";
+import { Check } from "lucide-react";
 
 interface PurchaseDialogProps {
   isOpen: boolean;
@@ -18,14 +20,16 @@ interface PurchaseDialogProps {
 }
 
 export default function PurchaseDialog({ isOpen, onClose, track }: PurchaseDialogProps) {
+  const router = useRouter();
   const [selectedUsage, setSelectedUsage] = useState<string>("");
   const [selectedRights, setSelectedRights] = useState<string[]>([]);
-  const [selectedDuration, setSelectedDuration] = useState<string>("");
+  const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
   const [proposedPrice, setProposedPrice] = useState<string>("");
+  const [createdDealId, setCreatedDealId] = useState<string | null>(null);
 
   const createDeal = api.deal.create.useMutation({
-    onSuccess: () => {
-      onClose();
+    onSuccess: (data) => {
+      setCreatedDealId(data.id);
     },
   });
 
@@ -45,27 +49,32 @@ export default function PurchaseDialog({ isOpen, onClose, track }: PurchaseDialo
   ];
 
   const durations = [
-    "1 Year",
-    "2 Years",
-    "3 Years",
-    "5 Years",
-    "Perpetual",
+    { label: "1 Year", value: 12 },
+    { label: "2 Years", value: 24 },
+    { label: "3 Years", value: 36 },
+    { label: "5 Years", value: 60 },
+    { label: "Perpetual", value: 1200 },
   ];
 
   const handleSubmit = () => {
-    if (!selectedUsage || selectedRights.length === 0 || !selectedDuration || !proposedPrice) {
+    if (!selectedUsage || selectedRights.length === 0 || selectedDuration === null || !proposedPrice) {
       return;
     }
 
     createDeal.mutate({
       trackId: track.id,
       terms: {
-        usageType: selectedUsage,
-        rights: selectedRights,
-        duration: selectedDuration,
+        usageType: selectedUsage as string,
+        rights: selectedRights as string[],
+        duration: selectedDuration as number,
         price: proposedPrice ? parseInt(proposedPrice) : 0,
       },
     });
+  };
+
+  const handleGoToDeal = () => {
+    router.push('/exec/messages');
+    onClose();
   };
 
   return (
@@ -78,90 +87,107 @@ export default function PurchaseDialog({ isOpen, onClose, track }: PurchaseDialo
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
-          <div>
-            <label className="mb-2 block text-sm font-medium">Usage Type</label>
-            <div className="flex flex-wrap gap-2">
-              {usageTypes.map((type) => (
-                <Button
-                  key={type}
-                  variant={selectedUsage === type ? "default" : "outline"}
-                  onClick={() => setSelectedUsage(type)}
-                  className="h-8"
-                >
-                  {type}
-                </Button>
-              ))}
+        {createdDealId ? (
+          <div className="flex flex-col items-center justify-center py-8 space-y-4">
+            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+              <Check className="w-6 h-6 text-green-600" />
             </div>
+            <h3 className="text-lg font-semibold text-gray-900">Deal Created</h3>
+            <p className="text-sm text-gray-500 text-center">
+              Your deal has been created successfully. You can now proceed to the messages page to continue the negotiation.
+            </p>
+            <Button onClick={handleGoToDeal} className="mt-4">
+              Go To Deal
+            </Button>
           </div>
+        ) : (
+          <>
+            <div className="grid gap-4 py-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium">Usage Type</label>
+                <div className="flex flex-wrap gap-2">
+                  {usageTypes.map((type) => (
+                    <Button
+                      key={type}
+                      variant={selectedUsage === type ? "default" : "outline"}
+                      onClick={() => setSelectedUsage(type)}
+                      className="h-8"
+                    >
+                      {type}
+                    </Button>
+                  ))}
+                </div>
+              </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium">Rights</label>
-            <div className="flex flex-wrap gap-2">
-              {rights.map((right) => (
-                <Button
-                  key={right}
-                  variant={selectedRights.includes(right) ? "default" : "outline"}
-                  onClick={() => {
-                    if (selectedRights.includes(right)) {
-                      setSelectedRights(selectedRights.filter((r) => r !== right));
+              <div>
+                <label className="mb-2 block text-sm font-medium">Rights</label>
+                <div className="flex flex-wrap gap-2">
+                  {rights.map((right) => (
+                    <Button
+                      key={right}
+                      variant={selectedRights.includes(right) ? "default" : "outline"}
+                      onClick={() => {
+                        if (selectedRights.includes(right)) {
+                          setSelectedRights(selectedRights.filter((r) => r !== right));
+                        } else {
+                          setSelectedRights([...selectedRights, right]);
+                        }
+                      }}
+                      className="h-8"
+                    >
+                      {right}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium">Duration</label>
+                <div className="flex flex-wrap gap-2">
+                  {durations.map((duration) => (
+                    <Button
+                      key={duration.value}
+                      variant={selectedDuration === duration.value ? "default" : "outline"}
+                      onClick={() => setSelectedDuration(duration.value)}
+                      className="h-8"
+                    >
+                      {duration.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium">Proposed Price ($)</label>
+                <input
+                  type="number"
+                  value={proposedPrice}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    if (!isNaN(value)) {
+                      setProposedPrice(value.toString());
                     } else {
-                      setSelectedRights([...selectedRights, right]);
+                      setProposedPrice("");
                     }
                   }}
-                  className="h-8"
-                >
-                  {right}
-                </Button>
-              ))}
+                  className="w-full rounded-md border border-gray-800 bg-white px-3 py-2 text-sm text-gray-900"
+                  placeholder="Enter amount"
+                  min="0"
+                  step="1"
+                />
+              </div>
             </div>
-          </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium">Duration</label>
-            <div className="flex flex-wrap gap-2">
-              {durations.map((duration) => (
-                <Button
-                  key={duration}
-                  variant={selectedDuration === duration ? "default" : "outline"}
-                  onClick={() => setSelectedDuration(duration)}
-                  className="h-8"
-                >
-                  {duration}
-                </Button>
-              ))}
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button onClick={handleSubmit} disabled={createDeal.isPending}>
+                {createDeal.isPending ? "Creating..." : "Create Deal"}
+              </Button>
             </div>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium">Proposed Price ($)</label>
-            <input
-              type="number"
-              value={proposedPrice}
-              onChange={(e) => {
-                const value = parseInt(e.target.value);
-                if (!isNaN(value)) {
-                  setProposedPrice(value.toString());
-                } else {
-                  setProposedPrice("");
-                }
-              }}
-              className="w-full rounded-md border border-gray-800 bg-white px-3 py-2 text-sm text-gray-900"
-              placeholder="Enter amount"
-              min="0"
-              step="1"
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={createDeal.isPending}>
-            {createDeal.isPending ? "Creating..." : "Create Deal"}
-          </Button>
-        </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

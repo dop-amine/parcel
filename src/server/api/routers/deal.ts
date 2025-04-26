@@ -8,7 +8,7 @@ const dealSchema = z.object({
   terms: z.object({
     usageType: z.string(),
     rights: z.array(z.string()),
-    duration: z.string(),
+    duration: z.number(),
     price: z.number(),
   }),
 });

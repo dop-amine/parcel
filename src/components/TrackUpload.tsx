@@ -362,15 +362,6 @@ export default function TrackUpload() {
         </label>
       </div>
 
-      {isUploading && (
-        <div className="w-full bg-gray-800 rounded-full h-2.5">
-          <div
-            className="bg-purple-600 h-2.5 rounded-full transition-all"
-            style={{ width: `${uploadProgress}%` }}
-          />
-        </div>
-      )}
-
       {error && (
         <div className="rounded-md bg-red-900/50 border border-red-800 p-4">
           <div className="text-sm text-red-400">{error}</div>
@@ -383,6 +374,11 @@ export default function TrackUpload() {
         disabled={isUploading || !file || genres.length === 0 || moods.length === 0}
         className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
+        {isUploading && (
+          <span className="mr-2 flex items-center">
+            <span className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></span>
+          </span>
+        )}
         {isUploading ? 'Uploading...' : 'Upload Track'}
       </button>
     </div>
