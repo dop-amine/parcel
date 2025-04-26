@@ -7,6 +7,7 @@ import SidebarFilters from "@/components/SidebarFilters";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePlayerStore } from "@/stores/playerStore";
+import { useSession } from 'next-auth/react';
 
 export default function ExplorePage() {
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -19,6 +20,9 @@ export default function ExplorePage() {
     page: 1,
     limit: 100,
   });
+
+  const { data: likedTracksData } = api.like.getLikedTracks.useQuery();
+  const likedTrackIds = new Set((likedTracksData ?? []).map((like: any) => like.track.id));
 
   const clearFilters = () => {
     setSelectedGenres([]);
@@ -162,6 +166,7 @@ export default function ExplorePage() {
                       <TrackCard
                         track={track}
                         onClickTag={handleTagClick}
+                        liked={likedTrackIds.has(track.id)}
                       />
                     </motion.div>
                   ))}

@@ -33,6 +33,8 @@ model User {
   dealsAsArtist Deal[]    @relation("ArtistDeals")
   dealsAsExec   Deal[]    @relation("ExecDeals")
   chatMessages  ChatMessage[]
+  likes         Like[]
+  playlists     Playlist[]
 }
 
 model Account {
@@ -86,6 +88,8 @@ model Track {
   isNegotiable Boolean @default(false) // Whether price is negotiable
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  likes       Like[]
+  playlistTracks PlaylistTrack[]
 
   @@index([userId])
 }
@@ -190,4 +194,33 @@ model ChatMessage {
 
   @@index([dealId])
   @@index([userId])
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  track     Track    @relation(fields: [trackId], references: [id])
+  trackId   String
+  createdAt DateTime @default(now())
+  @@unique([userId, trackId])
+}
+
+model Playlist {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  name      String
+  createdAt DateTime @default(now())
+  tracks    PlaylistTrack[]
+}
+
+model PlaylistTrack {
+  id         String   @id @default(uuid())
+  playlist   Playlist @relation(fields: [playlistId], references: [id])
+  playlistId String
+  track      Track    @relation(fields: [trackId], references: [id])
+  trackId    String
+  addedAt    DateTime @default(now())
+  @@unique([playlistId, trackId])
 }
