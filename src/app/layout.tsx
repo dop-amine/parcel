@@ -4,6 +4,7 @@ import "./globals.css";
 import "@/styles/audio-player.css";
 import { Providers } from "./providers";
 import StickyPlayer from "@/components/StickyPlayer";
+import PlayerPaddingWrapper from "@/components/PlayerPaddingWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,7 +23,9 @@ export default function RootLayout({
       <body className={inter.className} suppressHydrationWarning>
         <div className="min-h-screen bg-gradient-to-b from-black to-purple-900/20">
           <Providers>
-            {children}
+            <PlayerPaddingWrapper>
+              {children}
+            </PlayerPaddingWrapper>
           </Providers>
           <StickyPlayer />
         </div>
