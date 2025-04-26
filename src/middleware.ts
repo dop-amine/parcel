@@ -36,6 +36,41 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Handle role-based routing
+  const isArtist = token.role === 'ARTIST';
+  const isExec = token.role === 'EXEC';
+  const isOnArtistRoute = pathname.startsWith('/artist');
+  const isOnExecRoute = pathname.startsWith('/exec') || pathname === '/explore';
+
+  // Redirect artists trying to access exec routes
+  if (isArtist && isOnExecRoute) {
+    return NextResponse.redirect(new URL('/artist/dashboard', request.url));
+  }
+
+  // Redirect execs trying to access artist routes
+  if (isExec && isOnArtistRoute) {
+    return NextResponse.redirect(new URL('/exec/dashboard', request.url));
+  }
+
+  // Ensure users are on their correct role-based routes
+  if (isArtist && !isOnArtistRoute && !publicRoutes.includes(pathname)) {
+    return NextResponse.redirect(new URL('/artist/dashboard', request.url));
+  }
+
+  if (isExec && !isOnExecRoute && !publicRoutes.includes(pathname)) {
+    return NextResponse.redirect(new URL('/exec/dashboard', request.url));
+  }
+
+  // Handle /explore redirect for execs
+  if (isExec && pathname === '/explore') {
+    return NextResponse.redirect(new URL('/exec/explore', request.url));
+  }
+
+  // Handle /exec redirect to dashboard
+  if (isExec && pathname === '/exec') {
+    return NextResponse.redirect(new URL('/exec/dashboard', request.url));
+  }
+
   return NextResponse.next();
 }
 

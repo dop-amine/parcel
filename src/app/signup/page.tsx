@@ -74,7 +74,7 @@ function SignupForm() {
         throw new Error("Failed to sign in");
       }
 
-      router.push(role === "ARTIST" ? "/artist" : "/exec");
+      router.push(role === "ARTIST" ? "/artist/dashboard" : "/exec");
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);

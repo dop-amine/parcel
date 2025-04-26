@@ -27,7 +27,7 @@ export default function LoginPage() {
       });
 
       if (result?.ok) {
-        router.push("/artist");
+        router.push("/artist/dashboard");
         router.refresh();
       } else {
         setError("Invalid email or password");
