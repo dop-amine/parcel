@@ -11,7 +11,17 @@ interface DealListProps {
 export function DealList({ onSelectDeal }: DealListProps) {
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
 
-  const { data: deals, isLoading } = api.deal.list.useQuery();
+  const { data: deals, isLoading } = api.deal.list.useQuery(undefined, {
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    staleTime: 0, // Consider data stale immediately
+    refetchInterval: 5000, // Refetch every 5 seconds
+  });
+
+  const handleDealSelect = (deal: Deal) => {
+    setSelectedDealId(deal.id);
+    onSelectDeal(deal);
+  };
 
   if (isLoading) {
     return <div className="p-4">Loading deals...</div>;
@@ -30,10 +40,7 @@ export function DealList({ onSelectDeal }: DealListProps) {
             className={`p-4 border-b border-gray-800 cursor-pointer hover:bg-gray-800/50 ${
               selectedDealId === deal.id ? "bg-gray-800/50" : ""
             }`}
-            onClick={() => {
-              setSelectedDealId(deal.id);
-              onSelectDeal(deal);
-            }}
+            onClick={() => handleDealSelect(deal)}
           >
             <div className="flex items-center justify-between">
               <div className="font-medium text-white">{deal.track.title}</div>
