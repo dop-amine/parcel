@@ -17,7 +17,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const navigation = isArtist
     ? [
-        { name: "Dashboard", href: "/artist" },
+        { name: "Dashboard", href: "/artist/dashboard" },
         { name: "Upload", href: "/artist/upload" },
         { name: "My Tracks", href: "/artist/tracks" },
         { name: "Messages", href: "/artist/messages" },
