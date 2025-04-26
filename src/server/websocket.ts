@@ -1,10 +1,11 @@
-import { WebSocketServer } from 'ws';
+import { WebSocket, WebSocketServer } from 'ws';
 import { Server } from 'http';
 import { getSession } from 'next-auth/react';
+import { Deal } from '@/types/deal';
 
 interface WebSocketClient extends WebSocket {
-  userId: string;
-  role: string;
+  userId?: string;
+  role?: string;
 }
 
 export function createWebSocketServer(server: Server) {
@@ -34,14 +35,32 @@ export function createWebSocketServer(server: Server) {
 }
 
 // Function to broadcast deal updates to relevant users
-export function broadcastDealUpdate(wss: WebSocketServer, deal: any) {
-  wss.clients.forEach((client: WebSocketClient) => {
+export function broadcastDealUpdate(wss: WebSocketServer, deal: Deal) {
+  wss.clients.forEach((client) => {
+    const wsClient = client as WebSocketClient;
     // Only send to users involved in the deal
-    if (client.userId === deal.artistId || client.userId === deal.execId) {
-      client.send(JSON.stringify({
-        type: 'dealUpdate',
-        deal,
+    if (wsClient.readyState === WebSocket.OPEN &&
+        (wsClient.userId === deal.artistId || wsClient.userId === deal.execId)) {
+      wsClient.send(JSON.stringify({
+        type: 'DEAL_UPDATE',
+        data: deal
       }));
     }
   });
+}
+
+export function initializeWebSocketServer() {
+  const wss = new WebSocketServer({ port: 3001 });
+  global.wss = wss;
+
+  wss.on('connection', (ws) => {
+    const wsClient = ws as WebSocketClient;
+    console.log('Client connected');
+
+    wsClient.on('close', () => {
+      console.log('Client disconnected');
+    });
+  });
+
+  return wss;
 }

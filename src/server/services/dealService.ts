@@ -9,6 +9,12 @@ import {
   UnauthorizedActionError
 } from "@/types/deal";
 import { Prisma } from "@prisma/client";
+import { WebSocketServer } from 'ws';
+import { broadcastDealUpdate } from '@/server/websocket';
+
+declare global {
+  var wss: WebSocketServer | undefined;
+}
 
 export class DealService {
   async getDeal(dealId: string): Promise<Deal> {
