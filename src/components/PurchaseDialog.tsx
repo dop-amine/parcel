@@ -56,11 +56,11 @@ export default function PurchaseDialog({ isOpen, onClose, track }: PurchaseDialo
     { label: "Perpetual", value: 1200 },
   ];
 
-  const handleSubmit = () => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     if (!selectedUsage || selectedRights.length === 0 || selectedDuration === null || !proposedPrice) {
       return;
     }
-
     createDeal.mutate({
       trackId: track.id,
       terms: {
@@ -101,7 +101,7 @@ export default function PurchaseDialog({ isOpen, onClose, track }: PurchaseDialo
             </Button>
           </div>
         ) : (
-          <>
+          <form onSubmit={handleSubmit}>
             <div className="grid gap-4 py-4">
               <div>
                 <label className="mb-2 block text-sm font-medium">Usage Type</label>
@@ -112,6 +112,7 @@ export default function PurchaseDialog({ isOpen, onClose, track }: PurchaseDialo
                       variant={selectedUsage === type ? "default" : "outline"}
                       onClick={() => setSelectedUsage(type)}
                       className="h-8"
+                      type="button"
                     >
                       {type}
                     </Button>
@@ -134,6 +135,7 @@ export default function PurchaseDialog({ isOpen, onClose, track }: PurchaseDialo
                         }
                       }}
                       className="h-8"
+                      type="button"
                     >
                       {right}
                     </Button>
@@ -150,6 +152,7 @@ export default function PurchaseDialog({ isOpen, onClose, track }: PurchaseDialo
                       variant={selectedDuration === duration.value ? "default" : "outline"}
                       onClick={() => setSelectedDuration(duration.value)}
                       className="h-8"
+                      type="button"
                     >
                       {duration.label}
                     </Button>
@@ -179,14 +182,14 @@ export default function PurchaseDialog({ isOpen, onClose, track }: PurchaseDialo
             </div>
 
             <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={onClose}>
+              <Button variant="outline" onClick={onClose} type="button">
                 Cancel
               </Button>
-              <Button onClick={handleSubmit} disabled={createDeal.isPending}>
+              <Button type="submit" disabled={createDeal.isPending}>
                 {createDeal.isPending ? "Creating..." : "Create Deal"}
               </Button>
             </div>
-          </>
+          </form>
         )}
       </DialogContent>
     </Dialog>
