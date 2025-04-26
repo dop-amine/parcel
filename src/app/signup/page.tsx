@@ -38,6 +38,7 @@ function SignupForm() {
   const signup = trpc.user.create.useMutation();
 
   useEffect(() => {
+    if (!searchParams) return;
     const role = searchParams.get("role");
     if (role === "ARTIST" || role === "EXEC") {
       setSelectedRole(role);
