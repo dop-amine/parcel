@@ -11,16 +11,16 @@ export default function MessagesPage() {
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col">
       <div className="flex-1 container mx-auto max-w-7xl px-4 py-8 overflow-hidden">
-        <div className="flex h-full">
+        <div className="flex flex-col lg:flex-row h-full w-full overflow-x-hidden">
           {/* Left sidebar - Deal list */}
-          <div className="w-80 rounded-lg border border-gray-800 bg-gray-900/50 backdrop-blur-sm overflow-hidden">
+          <div className="w-full lg:w-80 rounded-lg border border-gray-800 bg-gray-900/50 backdrop-blur-sm overflow-hidden mb-4 lg:mb-0">
             <DealList onSelectDeal={setSelectedDeal} />
           </div>
 
           {/* Main content - Chat and details */}
-          <div className="ml-6 flex-1 flex">
+          <div className="flex flex-col lg:flex-row flex-1 w-full">
             {/* Chat section */}
-            <div className="flex-1 rounded-lg border border-gray-800 bg-gray-900/50 backdrop-blur-sm overflow-hidden">
+            <div className="w-full lg:flex-1 rounded-lg border border-gray-800 bg-gray-900/50 backdrop-blur-sm overflow-hidden mb-4 lg:mb-0 lg:ml-6">
               {selectedDeal ? (
                 <DealChat dealId={selectedDeal.id} deal={selectedDeal} />
               ) : (
@@ -31,7 +31,7 @@ export default function MessagesPage() {
             </div>
 
             {/* Deal details section */}
-            <div className="ml-6 w-96 rounded-lg border border-gray-800 bg-gray-900/50 backdrop-blur-sm overflow-hidden">
+            <div className="w-full lg:w-96 rounded-lg border border-gray-800 bg-gray-900/50 backdrop-blur-sm overflow-hidden lg:ml-6">
               {selectedDeal ? (
                 <DealDetails deal={selectedDeal} />
               ) : (

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { Menu } from "lucide-react";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -45,7 +46,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="flex items-center">
               <div className="flex-shrink-0 flex items-center">
                 <Link
-                  href={isArtist ? "/artist" : "/exec"}
+                  href={isArtist ? "/artist/dashboard" : "/exec"}
                   className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400"
                 >
                   Parcel
@@ -68,22 +69,34 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 ))}
               </div>
               {/* Mobile nav */}
-              <div className="sm:hidden ml-4">
-                <nav className="flex space-x-4 overflow-x-auto no-scrollbar py-2">
-                  {navigation.map((item) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={`${
-                        pathname === item.href
-                          ? "border-b-2 border-purple-500 text-white"
-                          : "border-b-2 border-transparent text-gray-300 hover:border-gray-300 hover:text-white"
-                      } flex-shrink-0 px-2 pb-1 text-sm font-medium transition-colors duration-200`}
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
-                </nav>
+              <div className="sm:hidden ml-4 relative">
+                <button
+                  onClick={() => setMobileNavOpen((open) => !open)}
+                  className="flex items-center px-2 py-2 rounded text-gray-300 hover:text-white hover:bg-gray-800 focus:outline-none"
+                  aria-label="Open navigation menu"
+                >
+                  <Menu className="h-6 w-6" />
+                </button>
+                {mobileNavOpen && (
+                  <div className="absolute left-0 mt-2 w-40 rounded-md shadow-lg bg-gray-900 border border-gray-800 z-50">
+                    <nav className="flex flex-col py-2">
+                      {navigation.map((item) => (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          className={`$ {
+                            pathname === item.href
+                              ? "bg-purple-700 text-white"
+                              : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                          } px-4 py-2 text-sm font-medium transition-colors duration-200`}
+                          onClick={() => setMobileNavOpen(false)}
+                        >
+                          {item.name}
+                        </Link>
+                      ))}
+                    </nav>
+                  </div>
+                )}
               </div>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:items-center">
