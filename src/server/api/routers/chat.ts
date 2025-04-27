@@ -8,7 +8,7 @@ const messageInclude = {
     select: {
       id: true,
       name: true,
-      image: true,
+      profilePicture: true,
     },
   },
 } satisfies Prisma.ChatMessageInclude;

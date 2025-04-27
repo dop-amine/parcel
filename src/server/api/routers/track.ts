@@ -179,7 +179,7 @@ export const trackRouter = createTRPCRouter({
           select: {
             id: true,
             name: true,
-            image: true,
+            profilePicture: true,
           },
         },
       },
@@ -344,7 +344,7 @@ export const trackRouter = createTRPCRouter({
             select: {
               id: true,
               name: true,
-              image: true,
+              profilePicture: true,
             },
           },
         },
@@ -393,7 +393,13 @@ export const trackRouter = createTRPCRouter({
       return {
         tracks: tracks.map(track => ({
           ...track,
-          artist: track.user,
+          artist: track.user
+            ? {
+                id: track.user.id,
+                name: track.user.name,
+                profilePicture: track.user.profilePicture,
+              }
+            : null,
         })),
         total,
         page,

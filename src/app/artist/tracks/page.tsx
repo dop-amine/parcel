@@ -67,20 +67,21 @@ function TracksList() {
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {(tracks as TrackType[])?.map((track) => {
-          const isCurrentTrack = currentTrack?.id === track.id;
+        {tracks?.map((track) => {
+          const t = { _count: { plays: 0, purchases: 0 }, user: { id: '', name: '', image: '' }, ...track } as TrackType;
+          const isCurrentTrack = currentTrack?.id === t.id;
           const trackWithArtist = {
-            ...track,
-            artist: track.user,
+            ...t,
+            artist: t.user,
           };
           return (
             <div
-              key={track.id}
+              key={t.id}
               className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-lg overflow-hidden hover:bg-gray-800/50 transition-all"
             >
               <div className="p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-xl font-semibold text-white">{track.title}</h3>
+                  <h3 className="text-xl font-semibold text-white">{t.title}</h3>
                   <button
                     onClick={() => {
                       if (isCurrentTrack) {
@@ -100,13 +101,13 @@ function TracksList() {
                     )}
                   </button>
                 </div>
-                {track.description && (
+                {t.description && (
                   <p className="text-gray-400 mb-4 line-clamp-2">
-                    {track.description}
+                    {t.description}
                   </p>
                 )}
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {track.genres.map((genre) => (
+                  {t.genres.map((genre) => (
                     <span
                       key={genre}
                       className="bg-purple-900/50 text-purple-200 text-sm px-2 py-1 rounded-full"
@@ -116,18 +117,18 @@ function TracksList() {
                   ))}
                 </div>
                 <div className="flex justify-between items-center text-sm text-gray-400">
-                  <span>{formatDistanceToNow(new Date(track.createdAt), { addSuffix: true })}</span>
-                  <span>{Math.floor(track.duration / 60)}:{String(Math.floor(track.duration % 60)).padStart(2, '0')}</span>
+                  <span>{formatDistanceToNow(new Date(t.createdAt), { addSuffix: true })}</span>
+                  <span>{Math.floor(t.duration / 60)}:{String(Math.floor(t.duration % 60)).padStart(2, '0')}</span>
                 </div>
               </div>
               <div className="bg-gray-800/50 p-4 flex justify-between items-center">
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-300">Plays: {track._count.plays}</p>
-                  <p className="text-sm font-medium text-gray-300">Purchases: {track._count.purchases}</p>
+                  <p className="text-sm font-medium text-gray-300">Plays: {t._count.plays}</p>
+                  <p className="text-sm font-medium text-gray-300">Purchases: {t._count.purchases}</p>
                 </div>
                 <button
                   className="text-purple-400 hover:text-purple-300 transition-colors text-sm"
-                  onClick={() => setOpenTrack(track)}
+                  onClick={() => setOpenTrack(t)}
                 >
                   View Details
                 </button>

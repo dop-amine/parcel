@@ -14,27 +14,32 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  role          String    @default("USER")
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  accounts      Account[]
-  sessions      Session[]
-  tracks        Track[]
-  artistThreads MessageThread[] @relation("ArtistThreads")
-  execThreads   MessageThread[] @relation("ExecThreads")
-  messages      Message[]
-  purchases     Purchase[]
-  dealsAsArtist Deal[]    @relation("ArtistDeals")
-  dealsAsExec   Deal[]    @relation("ExecDeals")
-  chatMessages  ChatMessage[]
-  likes         Like[]
-  playlists     Playlist[]
+  id             String    @id @default(uuid())
+  email          String    @unique
+  passwordHash   String
+  name           String
+  profilePicture String?
+  type           UserType
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  bio            String?
+  isActive       Boolean   @default(true)
+  lastLogin      DateTime?
+  socialLinks    Json?
+  company        String?
+  location       String?
+  accounts       Account[]
+  sessions       Session[]
+  tracks         Track[]
+  artistThreads  MessageThread[] @relation("ArtistThreads")
+  execThreads    MessageThread[] @relation("ExecThreads")
+  messages       Message[]
+  purchases      Purchase[]
+  dealsAsArtist  Deal[]    @relation("ArtistDeals")
+  dealsAsExec    Deal[]    @relation("ExecDeals")
+  chatMessages   ChatMessage[]
+  likes          Like[]
+  playlists      Playlist[]
 }
 
 model Account {
@@ -223,4 +228,9 @@ model PlaylistTrack {
   trackId    String
   addedAt    DateTime @default(now())
   @@unique([playlistId, trackId])
+}
+
+enum UserType {
+  ARTIST
+  EXEC
 }
