@@ -33,8 +33,8 @@ export const authRouter = router({
         data: {
           name,
           email,
-          password: hashedPassword,
-          role,
+          passwordHash: hashedPassword,
+          type: role,
         },
       });
 
@@ -42,7 +42,7 @@ export const authRouter = router({
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: user.type,
       };
     }),
 
