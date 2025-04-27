@@ -164,7 +164,10 @@ export default function ExplorePage() {
                       transition={{ delay: index * 0.05 }}
                     >
                       <TrackCard
-                        track={track}
+                        track={{
+                          ...track,
+                          artist: track.artist ?? { id: '', name: null, profilePicture: null }
+                        }}
                         onClickTag={handleTagClick}
                         liked={likedTrackIds.has(track.id)}
                       />
