@@ -25,21 +25,19 @@ export const authOptions: NextAuthOptions = {
           }
         });
 
-        if (!user || !user.password) {
+        if (!user || !user.passwordHash) {
           return null;
         }
 
-        const isPasswordValid = await compare(credentials.password, user.password);
-
-        if (!isPasswordValid) {
+        const isValid = await compare(credentials.password, user.passwordHash);
+        if (!isValid) {
           return null;
         }
-
         return {
           id: user.id,
-          email: user.email || "",
-          name: user.name || "",
-          role: user.role || "user",
+          email: user.email,
+          name: user.name,
+          role: user.type,
         };
       }
     })
