@@ -6,7 +6,7 @@ interface Track {
   artist: {
     id: string;
     name: string | null;
-    image: string | null;
+    profilePicture: string | null;
   };
   coverUrl: string | null;
   audioUrl: string;

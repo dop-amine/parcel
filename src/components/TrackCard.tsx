@@ -17,8 +17,7 @@ interface TrackCardProps {
     artist: {
       id: string;
       name: string | null;
-      image: string | null;
-      profilePicture?: string;
+      profilePicture: string | null;
     };
     coverUrl: string | null;
     audioUrl: string;

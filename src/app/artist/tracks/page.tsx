@@ -30,7 +30,7 @@ interface TrackType {
   moods: string[];
   createdAt: string | Date;
   _count: { plays: number; purchases: number };
-  user: { id: string; name: string | null; image: string | null };
+  user: { id: string; name: string | null; profilePicture: string | null };
 }
 
 function LoadingSpinner() {
@@ -68,7 +68,7 @@ function TracksList() {
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {tracks?.map((track) => {
-          const t = { _count: { plays: 0, purchases: 0 }, user: { id: '', name: '', image: '' }, ...track } as TrackType;
+          const t = { ...track } as TrackType;
           const isCurrentTrack = currentTrack?.id === t.id;
           const trackWithArtist = {
             ...t,
