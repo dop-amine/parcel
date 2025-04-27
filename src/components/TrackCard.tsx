@@ -18,6 +18,7 @@ interface TrackCardProps {
       id: string;
       name: string | null;
       image: string | null;
+      profilePicture?: string;
     };
     coverUrl: string | null;
     audioUrl: string;
@@ -76,9 +77,18 @@ export default function TrackCard({ track, onClickTag, liked, onLikeToggle }: Tr
       >
         <div className="p-4">
           <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-medium text-white">{track.title}</h3>
-              <p className="text-xs text-gray-400">{track.artist?.name || "Unknown Artist"}</p>
+            <div className="flex items-center gap-2">
+              {track.artist?.profilePicture && (
+                <img
+                  src={track.artist.profilePicture}
+                  alt={track.artist.name || "Artist"}
+                  className="w-8 h-8 rounded-full object-cover border border-gray-700"
+                />
+              )}
+              <div>
+                <h3 className="text-sm font-medium text-white">{track.title}</h3>
+                <p className="text-xs text-gray-400">{track.artist?.name || "Unknown Artist"}</p>
+              </div>
             </div>
             <Button
               variant="ghost"

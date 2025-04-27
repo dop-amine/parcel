@@ -37,11 +37,11 @@ export const authOptions: NextAuthOptions = {
           }
         });
 
-        if (!user || !user.password) {
+        if (!user || !user.passwordHash) {
           throw new Error('User not found');
         }
 
-        const isPasswordValid = await compare(credentials.password, user.password);
+        const isPasswordValid = await compare(credentials.password, user.passwordHash);
 
         if (!isPasswordValid) {
           throw new Error('Invalid password');
@@ -51,7 +51,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role,
+          role: user.type,
         };
       }
     })
@@ -65,10 +65,23 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async session({ session, token }) {
       if (token) {
-        session.user.id = token.sub as string;
-        session.user.name = token.name ?? null;
-        session.user.email = token.email ?? null;
-        session.user.role = token.role as string;
+        // Fetch the latest user data from the database
+        const user = await prisma.user.findUnique({
+          where: { id: token.sub as string },
+        });
+        if (user) {
+          session.user.id = user.id;
+          session.user.name = user.name;
+          session.user.email = user.email;
+          session.user.role = user.type;
+          // Add any other fields you want to keep in sync
+        } else {
+          // fallback to token if user not found
+          session.user.id = token.sub as string;
+          session.user.name = token.name ?? null;
+          session.user.email = token.email ?? null;
+          session.user.role = token.role as string;
+        }
       }
       return session;
     },

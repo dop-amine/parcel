@@ -81,7 +81,7 @@ export function DealChat({ dealId, deal }: DealChatProps) {
     return <div className="p-4">Loading messages...</div>;
   }
 
-  const isDealClosed = deal.state === 'DECLINED' || deal.state === 'ACCEPTED';
+  const isDealClosed = deal.state === 'DECLINED' || deal.state === 'ACCEPTED' || deal.state === 'CANCELLED';
 
   return (
     <div className="flex flex-col h-full">
@@ -119,7 +119,9 @@ export function DealChat({ dealId, deal }: DealChatProps) {
       <div className="p-4 border-t border-gray-800 bg-gray-900/50">
         {isDealClosed ? (
           <div className="text-center text-gray-400 py-2">
-            This deal is {deal.state.toLowerCase()}. No new messages can be sent.
+            {deal.state === 'CANCELLED'
+              ? 'This deal is cancelled. No new messages can be sent.'
+              : `This deal is ${deal.state.toLowerCase()}. No new messages can be sent.`}
           </div>
         ) : (
           <form

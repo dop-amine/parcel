@@ -1,14 +1,22 @@
+-- CreateEnum
+CREATE TYPE "UserType" AS ENUM ('ARTIST', 'EXEC');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
-    "name" TEXT,
-    "email" TEXT,
-    "emailVerified" TIMESTAMP(3),
-    "image" TEXT,
-    "password" TEXT,
-    "role" TEXT NOT NULL DEFAULT 'USER',
+    "email" TEXT NOT NULL,
+    "passwordHash" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "profilePicture" TEXT,
+    "type" "UserType" NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "bio" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "lastLogin" TIMESTAMP(3),
+    "socialLinks" JSONB,
+    "company" TEXT,
+    "location" TEXT,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );

@@ -98,7 +98,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       {/* Username and Sign out for mobile */}
                       {session?.user && (
                         <div className="border-t border-gray-800 mt-2 pt-2 px-4 flex flex-col gap-2">
-                          <span className="text-xs text-gray-400 truncate">{session.user.name}</span>
+                          <a
+                            href={session?.user?.role === 'ARTIST' ? '/artist/profile' : '/exec/profile'}
+                            className="text-xs text-gray-400 truncate hover:underline"
+                          >
+                            {session.user.name}
+                          </a>
                           <button
                             onClick={() => { setMobileNavOpen(false); signOut(); }}
                             className="text-xs text-gray-400 hover:text-white text-left transition-colors duration-200"
@@ -115,9 +120,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="hidden sm:ml-6 sm:flex sm:items-center">
               <div className="ml-3 relative">
                 <div className="flex items-center space-x-4">
-                  <span className="text-sm text-gray-300">
+                  <a
+                    href={session?.user?.role === 'ARTIST' ? '/artist/profile' : '/exec/profile'}
+                    className="text-sm text-gray-300 hover:underline"
+                  >
                     {session?.user?.name}
-                  </span>
+                  </a>
                   <button
                     onClick={() => signOut()}
                     className="text-sm text-gray-400 hover:text-white transition-colors duration-200"
