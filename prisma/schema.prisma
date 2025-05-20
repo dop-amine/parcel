@@ -165,6 +165,7 @@ model Deal {
   exec        User     @relation("ExecDeals", fields: [execId], references: [id])
   history     DealHistory[]
   chatMessages ChatMessage[]
+  playlistShares PlaylistShare[]
 
   @@index([trackId])
   @@index([artistId])
@@ -212,22 +213,49 @@ model Like {
 }
 
 model Playlist {
-  id        String   @id @default(uuid())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String
-  name      String
-  createdAt DateTime @default(now())
-  tracks    PlaylistTrack[]
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  tracks      PlaylistTrack[]
+  shares      PlaylistShare[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  isPublic    Boolean   @default(false)
+  coverUrl    String?
+
+  @@index([userId])
 }
 
 model PlaylistTrack {
-  id         String   @id @default(uuid())
-  playlist   Playlist @relation(fields: [playlistId], references: [id])
+  id         String   @id @default(cuid())
   playlistId String
-  track      Track    @relation(fields: [trackId], references: [id])
   trackId    String
-  addedAt    DateTime @default(now())
+  order      Int      // For custom ordering
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  track      Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
   @@unique([playlistId, trackId])
+  @@index([playlistId])
+  @@index([trackId])
+}
+
+model PlaylistShare {
+  id         String   @id @default(cuid())
+  playlistId String
+  email      String
+  dealId     String?  // Optional: links to deal if created
+  deal       Deal?    @relation(fields: [dealId], references: [id])
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  viewedAt   DateTime?
+  status     String   @default("PENDING") // PENDING, VIEWED, DEAL_CREATED, DEAL_COMPLETED
+
+  @@index([playlistId])
+  @@index([email])
+  @@index([dealId])
 }
 
 enum UserType {

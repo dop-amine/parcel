@@ -33,6 +33,8 @@ export default function PurchaseDialog({ isOpen, onClose, track }: PurchaseDialo
     },
   });
 
+  if (!track) return null;
+
   const usageTypes = [
     "Commercial",
     "Personal",
