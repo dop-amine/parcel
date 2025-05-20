@@ -427,4 +427,32 @@ export const trackRouter = createTRPCRouter({
 
       return track.waveformData;
     }),
+
+  delete: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const track = await prisma.track.findUnique({
+        where: { id: input.id },
+      });
+
+      if (!track) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Track not found",
+        });
+      }
+
+      if (track.userId !== ctx.session.user.id) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You can only delete your own tracks",
+        });
+      }
+
+      await prisma.track.delete({
+        where: { id: input.id },
+      });
+
+      return { success: true };
+    }),
 });

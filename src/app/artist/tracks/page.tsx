@@ -42,9 +42,15 @@ function LoadingSpinner() {
 }
 
 function TracksList() {
-  const { data: tracks, isLoading } = api.track.getMyTracks.useQuery();
+  const { data: tracks, isLoading, refetch } = api.track.getMyTracks.useQuery();
+  // @ts-expect-error: 'delete' is a reserved word but valid here
+  const deleteTrack = api.track["delete"].useMutation({
+    onSuccess: () => refetch(),
+  }) as any;
   const { currentTrack, isPlaying, setTrack, togglePlay, setPlaying } = usePlayerStore();
   const [openTrack, setOpenTrack] = useState<TrackType | null>(null);
+  const [deletingTrack, setDeletingTrack] = useState<TrackType | null>(null);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -126,17 +132,61 @@ function TracksList() {
                   <p className="text-sm font-medium text-gray-300">Plays: {t._count.plays}</p>
                   <p className="text-sm font-medium text-gray-300">Purchases: {t._count.purchases}</p>
                 </div>
-                <button
-                  className="text-purple-400 hover:text-purple-300 transition-colors text-sm"
-                  onClick={() => setOpenTrack(t)}
-                >
-                  View Details
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    className="text-purple-400 hover:text-purple-300 transition-colors text-sm"
+                    onClick={() => setOpenTrack(t)}
+                  >
+                    View Details
+                  </button>
+                  <button
+                    className="text-red-400 hover:text-red-300 transition-colors text-sm"
+                    onClick={() => {
+                      setDeletingTrack(t);
+                      setIsConfirmOpen(true);
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           );
         })}
       </div>
+      <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Track</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <span className="font-semibold">{deletingTrack?.title}</span>? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-4">
+            <DialogClose asChild>
+              <button
+                className="px-4 py-2 rounded bg-gray-700 text-gray-200 hover:bg-gray-600"
+                onClick={() => setIsConfirmOpen(false)}
+              >
+                Cancel
+              </button>
+            </DialogClose>
+            <button
+              className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+              onClick={async () => {
+                if (deletingTrack) {
+                  await deleteTrack.mutateAsync({ id: deletingTrack.id });
+                  setIsConfirmOpen(false);
+                  setDeletingTrack(null);
+                }
+              }}
+              disabled={deleteTrack.isLoading}
+            >
+              {deleteTrack.isLoading ? 'Deleting...' : 'Delete'}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Dialog open={!!openTrack} onOpenChange={(open) => !open && setOpenTrack(null)}>
         <DialogContent>
           {openTrack && (
