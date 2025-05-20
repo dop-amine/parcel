@@ -1,4 +1,4 @@
-export type UserRole = "ARTIST" | "EXEC";
+export type UserRole = "ARTIST" | "EXEC" | "ADMIN";
 
 export type DealStatus = "PENDING" | "COUNTERED" | "ACCEPTED" | "DECLINED" | "AWAITING_RESPONSE" | "CANCELLED";
 

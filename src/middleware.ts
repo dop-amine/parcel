@@ -71,6 +71,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/exec/dashboard', request.url));
   }
 
+  // Check if the path starts with /admin
+  if (pathname.startsWith('/admin')) {
+    if (token.role !== 'ADMIN') {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+  }
+
   return NextResponse.next();
 }
 
@@ -86,5 +93,6 @@ export const config = {
      * - api routes
      */
     '/((?!_next/static|_next/image|favicon.ico|public/|api/).*)',
+    '/admin/:path*',
   ],
 };

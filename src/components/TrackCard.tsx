@@ -30,9 +30,10 @@ interface TrackCardProps {
   onClickTag?: (tag: string) => void;
   liked?: boolean;
   onLikeToggle?: (liked: boolean) => void;
+  isAdmin?: boolean;
 }
 
-export default function TrackCard({ track, onClickTag, liked, onLikeToggle }: TrackCardProps) {
+export default function TrackCard({ track, onClickTag, liked, onLikeToggle, isAdmin }: TrackCardProps) {
   const { currentTrack, isPlaying, setTrack, togglePlay, setPlaying } = usePlayerStore();
   const isCurrentTrack = currentTrack?.id === track.id;
   const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
@@ -75,6 +76,26 @@ export default function TrackCard({ track, onClickTag, liked, onLikeToggle }: Tr
         className="group relative overflow-hidden rounded-lg border border-gray-800 bg-gray-900/50 backdrop-blur-sm transition-transform hover:scale-[1.02]"
       >
         <div className="p-4">
+          {isAdmin && (
+            <div className="mb-2 flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs text-gray-400 hover:text-white"
+                onClick={() => {/* TODO: Implement edit */}}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs text-red-400 hover:text-red-300"
+                onClick={() => {/* TODO: Implement delete */}}
+              >
+                Delete
+              </Button>
+            </div>
+          )}
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               {track.artist?.profilePicture && (
