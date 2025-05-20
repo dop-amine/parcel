@@ -5,7 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { Menu } from "lucide-react";
+import { Menu, Shield } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -17,8 +18,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const isArtist = session?.user?.role === 'ARTIST';
+  const isAdmin = session?.user?.role === 'ADMIN';
 
-  const navigation = isArtist
+  const navigation = isAdmin
+    ? [
+        { name: "Dashboard", href: "/admin/dashboard" },
+        { name: "Library", href: "/admin/library" },
+        { name: "Messages", href: "/admin/messages" },
+        { name: "Users", href: "/admin/users" },
+      ]
+    : isArtist
     ? [
         { name: "Dashboard", href: "/artist/dashboard" },
         { name: "Upload", href: "/artist/upload" },
@@ -46,7 +55,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="flex items-center">
               <div className="flex-shrink-0 flex items-center">
                 <Link
-                  href={isArtist ? "/artist/dashboard" : "/exec/dashboard"}
+                  href={isAdmin ? "/admin/dashboard" : isArtist ? "/artist/dashboard" : "/exec/dashboard"}
                   className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400"
                 >
                   Parcel
@@ -84,12 +93,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         <Link
                           key={item.name}
                           href={item.href}
-                          className={`$ {
+                          className={`${
                             pathname === item.href
                               ? "bg-purple-700 text-white"
                               : "text-gray-300 hover:bg-gray-800 hover:text-white"
                           } px-4 py-2 text-sm font-medium transition-colors duration-200`}
-                          style={{ color: pathname === item.href ? '#fff' : '#d1d5db' }}
                           onClick={() => setMobileNavOpen(false)}
                         >
                           {item.name}
@@ -98,12 +106,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       {/* Username and Sign out for mobile */}
                       {session?.user && (
                         <div className="border-t border-gray-800 mt-2 pt-2 px-4 flex flex-col gap-2">
-                          <a
-                            href={session?.user?.role === 'ARTIST' ? '/artist/profile' : '/exec/profile'}
-                            className="text-xs text-gray-400 truncate hover:underline"
-                          >
-                            {session.user.name}
-                          </a>
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={isAdmin ? '/admin/profile' : isArtist ? '/artist/profile' : '/exec/profile'}
+                              className="text-xs text-gray-400 truncate hover:underline"
+                            >
+                              {session.user.name}
+                            </a>
+                            {isAdmin && (
+                              <Badge variant="secondary" className="bg-green-500/10 text-green-500">
+                                <Shield className="h-3 w-3 mr-1" />
+                                Admin
+                              </Badge>
+                            )}
+                          </div>
                           <button
                             onClick={() => { setMobileNavOpen(false); signOut(); }}
                             className="text-xs text-gray-400 hover:text-white text-left transition-colors duration-200"
@@ -120,12 +136,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="hidden sm:ml-6 sm:flex sm:items-center">
               <div className="ml-3 relative">
                 <div className="flex items-center space-x-4">
-                  <a
-                    href={session?.user?.role === 'ARTIST' ? '/artist/profile' : '/exec/profile'}
-                    className="text-sm text-gray-300 hover:underline"
-                  >
-                    {session?.user?.name}
-                  </a>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={isAdmin ? '/admin/profile' : isArtist ? '/artist/profile' : '/exec/profile'}
+                      className="text-sm text-gray-300 hover:underline"
+                    >
+                      {session?.user?.name}
+                    </a>
+                    {isAdmin && (
+                      <Badge variant="secondary" className="bg-green-500/10 text-green-500">
+                        <Shield className="h-3 w-3 mr-1" />
+                        Admin
+                      </Badge>
+                    )}
+                  </div>
                   <button
                     onClick={() => signOut()}
                     className="text-sm text-gray-400 hover:text-white transition-colors duration-200"
