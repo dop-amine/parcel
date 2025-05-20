@@ -43,7 +43,6 @@ function LoadingSpinner() {
 
 function TracksList() {
   const { data: tracks, isLoading, refetch } = api.track.getMyTracks.useQuery();
-  // @ts-expect-error: 'delete' is a reserved word but valid here
   const deleteTrack = api.track["delete"].useMutation({
     onSuccess: () => refetch(),
   }) as any;
