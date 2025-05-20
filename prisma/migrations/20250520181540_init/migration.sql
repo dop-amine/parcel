@@ -8,7 +8,7 @@ CREATE TABLE "User" (
     "passwordHash" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "profilePicture" TEXT,
-    "type" "UserType" NOT NULL,
+    "type" "UserType" NOT NULL DEFAULT 'ARTIST',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "bio" TEXT,
@@ -180,9 +180,13 @@ CREATE TABLE "Like" (
 -- CreateTable
 CREATE TABLE "Playlist" (
     "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "description" TEXT,
+    "userId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "isPublic" BOOLEAN NOT NULL DEFAULT false,
+    "coverUrl" TEXT,
 
     CONSTRAINT "Playlist_pkey" PRIMARY KEY ("id")
 );
@@ -192,9 +196,23 @@ CREATE TABLE "PlaylistTrack" (
     "id" TEXT NOT NULL,
     "playlistId" TEXT NOT NULL,
     "trackId" TEXT NOT NULL,
-    "addedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "order" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "PlaylistTrack_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "PlaylistShare" (
+    "id" TEXT NOT NULL,
+    "playlistId" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "dealId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "viewedAt" TIMESTAMP(3),
+    "status" TEXT NOT NULL DEFAULT 'PENDING',
+
+    CONSTRAINT "PlaylistShare_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -237,7 +255,25 @@ CREATE INDEX "ChatMessage_userId_idx" ON "ChatMessage"("userId");
 CREATE UNIQUE INDEX "Like_userId_trackId_key" ON "Like"("userId", "trackId");
 
 -- CreateIndex
+CREATE INDEX "Playlist_userId_idx" ON "Playlist"("userId");
+
+-- CreateIndex
+CREATE INDEX "PlaylistTrack_playlistId_idx" ON "PlaylistTrack"("playlistId");
+
+-- CreateIndex
+CREATE INDEX "PlaylistTrack_trackId_idx" ON "PlaylistTrack"("trackId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "PlaylistTrack_playlistId_trackId_key" ON "PlaylistTrack"("playlistId", "trackId");
+
+-- CreateIndex
+CREATE INDEX "PlaylistShare_playlistId_idx" ON "PlaylistShare"("playlistId");
+
+-- CreateIndex
+CREATE INDEX "PlaylistShare_email_idx" ON "PlaylistShare"("email");
+
+-- CreateIndex
+CREATE INDEX "PlaylistShare_dealId_idx" ON "PlaylistShare"("dealId");
 
 -- AddForeignKey
 ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -306,7 +342,13 @@ ALTER TABLE "Like" ADD CONSTRAINT "Like_trackId_fkey" FOREIGN KEY ("trackId") RE
 ALTER TABLE "Playlist" ADD CONSTRAINT "Playlist_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "PlaylistTrack" ADD CONSTRAINT "PlaylistTrack_playlistId_fkey" FOREIGN KEY ("playlistId") REFERENCES "Playlist"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "PlaylistTrack" ADD CONSTRAINT "PlaylistTrack_playlistId_fkey" FOREIGN KEY ("playlistId") REFERENCES "Playlist"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "PlaylistTrack" ADD CONSTRAINT "PlaylistTrack_trackId_fkey" FOREIGN KEY ("trackId") REFERENCES "Track"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "PlaylistTrack" ADD CONSTRAINT "PlaylistTrack_trackId_fkey" FOREIGN KEY ("trackId") REFERENCES "Track"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PlaylistShare" ADD CONSTRAINT "PlaylistShare_dealId_fkey" FOREIGN KEY ("dealId") REFERENCES "Deal"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PlaylistShare" ADD CONSTRAINT "PlaylistShare_playlistId_fkey" FOREIGN KEY ("playlistId") REFERENCES "Playlist"("id") ON DELETE CASCADE ON UPDATE CASCADE;
