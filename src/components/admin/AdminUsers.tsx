@@ -49,13 +49,13 @@ export default function AdminUsers() {
   });
 
   // Mock data - replace with actual tRPC calls
-  const { data: users, isLoading, refetch } = api.user.getAllUsers?.useQuery() || {
-    data: [
+  const { data: users, isLoading, refetch } = api.user.getAllUsers.useQuery(undefined, {
+    placeholderData: [
       {
         id: '1',
         name: 'John Artist',
         email: 'john@example.com',
-        type: 'ARTIST',
+        type: 'ARTIST' as const,
         isActive: true,
         createdAt: new Date('2024-01-15'),
         lastLogin: new Date('2024-01-20'),
@@ -65,7 +65,7 @@ export default function AdminUsers() {
         id: '2',
         name: 'Jane Executive',
         email: 'jane@example.com',
-        type: 'EXEC',
+        type: 'EXEC' as const,
         isActive: true,
         createdAt: new Date('2024-01-10'),
         lastLogin: new Date('2024-01-19'),
@@ -75,16 +75,14 @@ export default function AdminUsers() {
         id: '3',
         name: 'Admin User',
         email: 'admin@example.com',
-        type: 'ADMIN',
+        type: 'ADMIN' as const,
         isActive: true,
         createdAt: new Date('2024-01-01'),
         lastLogin: new Date('2024-01-21'),
         _count: { tracks: 0, dealsAsArtist: 0, dealsAsExec: 0 }
       }
-    ],
-    isLoading: false,
-    refetch: () => {}
-  };
+    ]
+  });
 
   const getRoleColor = (role: string) => {
     switch (role) {

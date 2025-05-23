@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { hash } from "bcryptjs";
-import { createTRPCRouter, publicProcedure } from "../trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure } from "../trpc";
 import prisma from "@/lib/prisma";
 import { TRPCError } from '@trpc/server';
 import { getServerSession } from 'next-auth';
@@ -77,4 +77,38 @@ export const userRouter = createTRPCRouter({
       });
       return user;
     }),
+
+  getAllUsers: protectedProcedure.query(async ({ ctx }) => {
+    // Only allow admins to get all users
+    if (ctx.session.user.role !== 'ADMIN') {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'Only admins can access all users',
+      });
+    }
+
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        type: true,
+        isActive: true,
+        createdAt: true,
+        lastLogin: true,
+        _count: {
+          select: {
+            tracks: true,
+            dealsAsArtist: true,
+            dealsAsExec: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return users;
+  }),
 });
