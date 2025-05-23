@@ -2,13 +2,14 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Heart, MessageSquare, ShoppingCart, Play, Pause } from "lucide-react";
+import { Heart, MessageSquare, ShoppingCart, Play, Pause, Edit, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { usePlayerStore } from "@/stores/playerStore";
 import PurchaseDialog from "./PurchaseDialog";
 import { api } from '@/utils/api';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 
 interface TrackCardProps {
   track: {
@@ -31,34 +32,60 @@ interface TrackCardProps {
   liked?: boolean;
   onLikeToggle?: (liked: boolean) => void;
   isAdmin?: boolean;
+  onRefetch?: () => void;
 }
 
-export default function TrackCard({ track, onClickTag, liked, onLikeToggle, isAdmin }: TrackCardProps) {
+export default function TrackCard({ track, onClickTag, liked, onLikeToggle, isAdmin, onRefetch }: TrackCardProps) {
   const { currentTrack, isPlaying, setTrack, togglePlay, setPlaying } = usePlayerStore();
   const isCurrentTrack = currentTrack?.id === track.id;
   const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
+  const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false);
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
+  const [addSuccess, setAddSuccess] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState('');
+  const [optimisticLiked, setOptimisticLiked] = useState<boolean | null>(null);
+  const playlistListRef = useRef<HTMLDivElement>(null);
+
+  // Admin edit/delete states
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState(track.title);
+  const [editPrice, setEditPrice] = useState(track.price?.toString() || '');
+  const [editNegotiable, setEditNegotiable] = useState(track.isNegotiable || false);
+
   const likeMutation = api.like.likeTrack.useMutation();
   const unlikeMutation = api.like.unlikeTrack.useMutation();
-  const [optimisticLiked, setOptimisticLiked] = useState(liked);
-  const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false);
   const { data: playlists, refetch: refetchPlaylists } = api.playlist.getPlaylists.useQuery();
   const addTrackToPlaylist = api.playlist.addTrackToPlaylist.useMutation({
     onSuccess: () => {
       setIsAddToPlaylistOpen(false);
     },
   });
-  const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
   const createPlaylist = api.playlist.createPlaylist.useMutation({
     onSuccess: (data) => {
-      refetchPlaylists();
+      setIsAddToPlaylistOpen(false);
       setNewPlaylistName("");
+      setShowCreate(false);
       setSelectedPlaylistId(data.id);
+      refetchPlaylists();
     },
   });
-  const [newPlaylistName, setNewPlaylistName] = useState("");
-  const [showCreate, setShowCreate] = useState(false);
-  const playlistListRef = useRef<HTMLDivElement>(null);
-  const [addSuccess, setAddSuccess] = useState(false);
+
+  // Admin track mutations
+  const updateTrack = api.track.update.useMutation({
+    onSuccess: () => {
+      setIsEditModalOpen(false);
+      onRefetch?.();
+    },
+  });
+
+  const deleteTrack = api.track.delete.useMutation({
+    onSuccess: () => {
+      setIsDeleteModalOpen(false);
+      onRefetch?.();
+    },
+  });
 
   useEffect(() => {
     if (selectedPlaylistId && playlistListRef.current) {
@@ -82,7 +109,12 @@ export default function TrackCard({ track, onClickTag, liked, onLikeToggle, isAd
                 variant="ghost"
                 size="sm"
                 className="h-6 text-xs text-gray-400 hover:text-white"
-                onClick={() => {/* TODO: Implement edit */}}
+                onClick={() => {
+                  setEditTitle(track.title);
+                  setEditPrice(track.price?.toString() || '');
+                  setEditNegotiable(track.isNegotiable || false);
+                  setIsEditModalOpen(true);
+                }}
               >
                 Edit
               </Button>
@@ -90,7 +122,7 @@ export default function TrackCard({ track, onClickTag, liked, onLikeToggle, isAd
                 variant="ghost"
                 size="sm"
                 className="h-6 text-xs text-red-400 hover:text-red-300"
-                onClick={() => {/* TODO: Implement delete */}}
+                onClick={() => setIsDeleteModalOpen(true)}
               >
                 Delete
               </Button>
@@ -308,6 +340,97 @@ export default function TrackCard({ track, onClickTag, liked, onLikeToggle, isAd
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Admin Edit Track Modal */}
+      {isAdmin && (
+        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Track</DialogTitle>
+              <DialogDescription>
+                Update track details. Changes will be reflected across the platform.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              updateTrack.mutate({
+                id: track.id,
+                title: editTitle,
+                basePrice: editPrice ? parseFloat(editPrice) : undefined,
+                isNegotiable: editNegotiable,
+              });
+            }}>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-300">Title</label>
+                  <Input
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-300">Price ($)</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={editPrice}
+                    onChange={(e) => setEditPrice(e.target.value)}
+                    placeholder="Leave empty for no price"
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="editNegotiable"
+                    checked={editNegotiable}
+                    onChange={(e) => setEditNegotiable(e.target.checked)}
+                  />
+                  <label htmlFor="editNegotiable" className="text-sm font-medium text-gray-300">
+                    Price is negotiable
+                  </label>
+                </div>
+              </div>
+              <DialogFooter className="mt-6">
+                <DialogClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DialogClose>
+                <Button type="submit" disabled={updateTrack.isPending}>
+                  {updateTrack.isPending ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Admin Delete Track Modal */}
+      {isAdmin && (
+        <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Track</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete <span className="font-semibold">"{track.title}"</span>?
+                This action cannot be undone and will remove the track from all playlists and purchases.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">Cancel</Button>
+              </DialogClose>
+              <Button
+                variant="destructive"
+                onClick={() => deleteTrack.mutate({ id: track.id })}
+                disabled={deleteTrack.isPending}
+              >
+                {deleteTrack.isPending ? 'Deleting...' : 'Delete Track'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
