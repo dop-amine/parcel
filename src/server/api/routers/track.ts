@@ -428,6 +428,49 @@ export const trackRouter = createTRPCRouter({
       return track.waveformData;
     }),
 
+  update: protectedProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        title: z.string().optional(),
+        description: z.string().optional(),
+        basePrice: z.number().min(0).optional(),
+        isNegotiable: z.boolean().optional(),
+        genres: z.array(genreEnum).optional(),
+        moods: z.array(moodEnum).optional(),
+        bpm: z.number().min(1).max(999).optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { id, ...updateData } = input;
+
+      const track = await prisma.track.findUnique({
+        where: { id },
+      });
+
+      if (!track) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Track not found",
+        });
+      }
+
+      // Allow track owner or admin to update
+      if (track.userId !== ctx.session.user.id && ctx.session.user.role !== 'ADMIN') {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You can only update your own tracks",
+        });
+      }
+
+      const updatedTrack = await prisma.track.update({
+        where: { id },
+        data: updateData,
+      });
+
+      return updatedTrack;
+    }),
+
   delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input, ctx }) => {
@@ -442,15 +485,49 @@ export const trackRouter = createTRPCRouter({
         });
       }
 
-      if (track.userId !== ctx.session.user.id) {
+      if (track.userId !== ctx.session.user.id && ctx.session.user.role !== 'ADMIN') {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You can only delete your own tracks",
         });
       }
 
-      await prisma.track.delete({
-        where: { id: input.id },
+      // Perform cascading delete - remove all related records first
+      await prisma.$transaction(async (tx) => {
+        // Delete likes for this track
+        await tx.like.deleteMany({
+          where: { trackId: input.id },
+        });
+
+        // Delete playlist tracks (remove from all playlists)
+        await tx.playlistTrack.deleteMany({
+          where: { trackId: input.id },
+        });
+
+        // Delete plays for this track
+        await tx.play.deleteMany({
+          where: { trackId: input.id },
+        });
+
+        // Delete purchases for this track
+        await tx.purchase.deleteMany({
+          where: { trackId: input.id },
+        });
+
+        // Delete earnings related to this track
+        await tx.earning.deleteMany({
+          where: { trackId: input.id },
+        });
+
+        // Delete any deals related to this track
+        await tx.deal.deleteMany({
+          where: { trackId: input.id },
+        });
+
+        // Finally, delete the track itself
+        await tx.track.delete({
+          where: { id: input.id },
+        });
       });
 
       return { success: true };

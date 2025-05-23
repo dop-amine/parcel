@@ -23,6 +23,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const navigation = isAdmin
     ? [
         { name: "Dashboard", href: "/admin/dashboard" },
+        { name: "Explore", href: "/admin/explore" },
         { name: "Library", href: "/admin/library" },
         { name: "Messages", href: "/admin/messages" },
         { name: "Users", href: "/admin/users" },

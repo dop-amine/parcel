@@ -17,7 +17,7 @@ Parcel is a modern music platform that connects artists with listeners. It provi
 - **Styling**: Tailwind CSS
 - **Authentication**: NextAuth.js
 - **Database**: PostgreSQL with Prisma ORM
-- **Deployment**: Docker and Docker Compose
+- **Deployment**: Vercel
 - **Development**: Node.js, npm
 
 ## Prerequisites
@@ -29,35 +29,7 @@ Parcel is a modern music platform that connects artists with listeners. It provi
 
 ## Getting Started
 
-#### Option 1: Using Docker (Recommended)
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/parcel.git
-   cd parcel
-   ```
-
-2. Create a `.env` file in the root directory with the following variables:
-   ```
-   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/parcel?schema=public"
-   NEXTAUTH_URL="http://localhost:3000"
-   NEXTAUTH_SECRET="your-secure-secret-here"  # Generate with `openssl rand -base64 32`
-   BLOB_READ_WRITE_TOKEN="your-secure-token-here"  # From Vercel settings
-   ```
-
-3. Start the application using Docker Compose:
-   ```bash
-   docker-compose up -d
-   ```
-
-4. Run database migrations:
-   ```bash
-   docker-compose exec app npx prisma migrate dev
-   ```
-
-5. The application will be available at `http://localhost:3000`
-
-#### Option 2: Local Development
+#### Local Development
 
 1. Clone the repository:
    ```bash
@@ -88,12 +60,46 @@ Parcel is a modern music platform that connects artists with listeners. It provi
    npx prisma migrate dev
    ```
 
-6. Start the development server:
+6. Seed the database:
+   ```bash
+   npm run prisma:seed
+   ```
+   This will create a default admin user with the email `admin@parcel.com` and password `password`.
+
+7. Start the development server:
    ```bash
    npm run dev
    ```
 
 7. The application will be available at `http://localhost:3000`
+
+#### Using Docker
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/parcel.git
+   cd parcel
+   ```
+
+2. Create a `.env` file in the root directory with the following variables:
+   ```
+   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/parcel?schema=public"
+   NEXTAUTH_URL="http://localhost:3000"
+   NEXTAUTH_SECRET="your-secure-secret-here"  # Generate with `openssl rand -base64 32`
+   BLOB_READ_WRITE_TOKEN="your-secure-token-here"  # From Vercel settings
+   ```
+
+3. Start the application using Docker Compose:
+   ```bash
+   docker-compose up -d
+   ```
+
+4. Run database migrations:
+   ```bash
+   docker-compose exec app npx prisma migrate dev
+   ```
+
+5. The application will be available at `http://localhost:3000`
 
 ## Project Structure
 
@@ -131,18 +137,4 @@ parcel/
 
 3. Push your changes and create a pull request
 
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For support, please open an issue in the GitHub repository or contact the maintainers.
+4. Merge your changes into the main branch
