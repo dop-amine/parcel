@@ -7,6 +7,9 @@ import { trpc } from "@/utils/trpc";
 import { signIn } from "next-auth/react";
 import { motion } from "framer-motion";
 import { Mic, Target } from "lucide-react";
+import TierSelector from '@/components/TierSelector';
+
+type AllowedTier = "ARTIST" | "LABEL" | "CREATOR" | "STUDIO";
 
 function LoadingState() {
   return (
@@ -35,6 +38,7 @@ function SignupForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<"ARTIST" | "EXEC" | null>(null);
+  const [selectedTier, setSelectedTier] = useState<AllowedTier | undefined>(undefined);
   const signup = trpc.user.create.useMutation();
 
   useEffect(() => {
@@ -54,7 +58,8 @@ function SignupForm() {
     const name = formData.get("name") as string;
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
-    const role = selectedRole || (formData.get("role") as "ARTIST" | "EXEC");
+    const role = selectedRole!;
+    const tier = selectedTier;
 
     try {
       await signup.mutateAsync({
@@ -62,6 +67,7 @@ function SignupForm() {
         email,
         password,
         role,
+        tier,
       });
 
       const result = await signIn("credentials", {
@@ -91,7 +97,7 @@ function SignupForm() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md p-8 space-y-8 bg-gray-900/50 backdrop-blur-sm rounded-2xl border border-gray-800 shadow-xl"
+        className={`w-full ${selectedRole ? 'max-w-4xl' : 'max-w-md'} p-8 space-y-8 bg-gray-900/50 backdrop-blur-sm rounded-2xl border border-gray-800 shadow-xl transition-all duration-300`}
       >
         <div className="text-center">
           <h2 className="text-3xl font-bold text-white mb-2">Create your account</h2>
@@ -103,6 +109,12 @@ function SignupForm() {
           </p>
         </div>
 
+        {selectedRole && (
+          <div className="mb-4 text-center text-sm text-gray-400">
+            Step 2 of 3: Choose Your {selectedRole === "ARTIST" ? "Artist" : "Executive"} Tier
+          </div>
+        )}
+
         {!selectedRole && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -113,20 +125,25 @@ function SignupForm() {
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => setSelectedRole("ARTIST")}
-                className="p-4 rounded-xl border border-gray-700 hover:border-purple-500 transition-all hover:bg-gray-800/50"
+                className="p-6 rounded-xl border border-gray-700 hover:border-purple-500 transition-all hover:bg-gray-800/50"
               >
-                <div className="text-purple-400 text-2xl mb-2">🎤</div>
-                <h4 className="text-white font-medium">Artist</h4>
-                <p className="text-sm text-gray-400">Upload and manage your music</p>
+                <div className="text-purple-400 text-3xl mb-3">🎤</div>
+                <h4 className="text-white font-medium text-lg mb-2">Artist</h4>
+                <p className="text-sm text-gray-400">Upload and manage your music catalog</p>
               </button>
               <button
                 onClick={() => setSelectedRole("EXEC")}
-                className="p-4 rounded-xl border border-gray-700 hover:border-purple-500 transition-all hover:bg-gray-800/50"
+                className="p-6 rounded-xl border border-gray-700 hover:border-purple-500 transition-all hover:bg-gray-800/50"
               >
-                <div className="text-purple-400 text-2xl mb-2">🎯</div>
-                <h4 className="text-white font-medium">Executive</h4>
-                <p className="text-sm text-gray-400">Discover and license music</p>
+                <div className="text-purple-400 text-3xl mb-3">🎯</div>
+                <h4 className="text-white font-medium text-lg mb-2">Executive</h4>
+                <p className="text-sm text-gray-400">Discover and license music for projects</p>
               </button>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-500">
+                Looking for a Representative or Admin account? Contact your administrator.
+              </p>
             </div>
           </motion.div>
         )}
@@ -159,6 +176,15 @@ function SignupForm() {
               >
                 Switch to {selectedRole === "ARTIST" ? "Executive" : "Artist"}
               </button>
+            </div>
+
+            <div className="mb-10">
+              <TierSelector
+                userRole={selectedRole as "ARTIST" | "EXEC"}
+                selectedTier={selectedTier}
+                onTierSelect={(tier) => setSelectedTier(tier as AllowedTier)}
+                className="mb-6"
+              />
             </div>
 
             <div className="space-y-4">
@@ -212,7 +238,7 @@ function SignupForm() {
             <div>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !selectedTier}
                 className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
                 {loading ? "Creating account..." : "Create account"}

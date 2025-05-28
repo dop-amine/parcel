@@ -104,8 +104,8 @@ export default async function AdminMessages() {
                   </td>
                   <td className="px-4 py-3">
                     <div>
-                      <p className="text-sm">{deal.exec.name}</p>
-                      <p className="text-xs text-gray-400">{deal.exec.email}</p>
+                      <p className="text-sm">{deal.exec?.name || 'External Executive'}</p>
+                      <p className="text-xs text-gray-400">{deal.exec?.email || deal.execEmail || 'No email'}</p>
                     </div>
                   </td>
                   <td className="px-4 py-3">

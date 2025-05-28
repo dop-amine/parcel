@@ -278,6 +278,7 @@ export const trackRouter = createTRPCRouter({
       return track;
     }),
 
+  // Fetch public tracks with tier-based filtering for buyers
   getAllPublic: publicProcedure
     .input(
       z.object({
@@ -287,47 +288,84 @@ export const trackRouter = createTRPCRouter({
         bpmMax: z.number().optional(),
         page: z.number().optional(),
         limit: z.number().optional(),
+        /**
+         * For PRO buyers we allow a toggle to show the entire catalogue (Artist & Label) rather than
+         * just the default Rostered tier. The flag has no effect for other roles.
+         */
+        showAll: z.boolean().optional(),
       })
     )
-    .query(async ({ input }) => {
-      const { genres, moods, bpmMin, bpmMax, page = 1, limit = 10 } = input;
+    .query(async ({ input, ctx }) => {
+      const { genres, moods, bpmMin, bpmMax, page = 1, limit = 10, showAll = false } = input;
+
+      // Build dynamic filters
+      const andFilters: Prisma.TrackWhereInput[] = [];
+
+      // 1. Tier-based visibility for EXEC (buyer) role
+      if (ctx.session?.user?.role === 'EXEC') {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+        const { getVisibleArtistTiers } = await import('@/utils/tiers');
+        const buyerTier = ctx.session.user.tier as import('@/types/deal').BuyerTier | undefined;
+
+        if (buyerTier) {
+          // Determine which artist tiers the buyer can see
+          let visibleArtistTiers: import('@/types/deal').ArtistTier[];
+
+          if (buyerTier === 'PRO') {
+            visibleArtistTiers = showAll
+              ? ['ARTIST', 'LABEL', 'ROSTERED']
+              : ['ROSTERED'];
+          } else {
+            visibleArtistTiers = getVisibleArtistTiers(buyerTier);
+          }
+
+          andFilters.push({
+            user: {
+              tier: {
+                in: visibleArtistTiers,
+              },
+            },
+          });
+        }
+      }
+
+      // 2. Genre / mood / BPM filters
+      if (genres?.length) {
+        andFilters.push({
+          genres: {
+            hasSome: genres,
+          },
+        });
+      }
+
+      if (moods?.length) {
+        andFilters.push({
+          moods: {
+            hasSome: moods,
+          },
+        });
+      }
+
+      if (bpmMin !== undefined) {
+        andFilters.push({
+          bpm: {
+            gte: bpmMin,
+          },
+        });
+      }
+
+      if (bpmMax !== undefined) {
+        andFilters.push({
+          bpm: {
+            lte: bpmMax,
+          },
+        });
+      }
+
+      const whereClause: Prisma.TrackWhereInput = andFilters.length > 0 ? { AND: andFilters } : {};
 
       const tracks = await prisma.track.findMany({
-        where: {
-          AND: [
-            // Genre filter
-            genres?.length
-              ? {
-                  genres: {
-                    hasSome: genres,
-                  },
-                }
-              : {},
-            // Mood filter
-            moods?.length
-              ? {
-                  moods: {
-                    hasSome: moods,
-                  },
-                }
-              : {},
-            // BPM range filter
-            bpmMin !== undefined
-              ? {
-                  bpm: {
-                    gte: bpmMin,
-                  },
-                }
-              : {},
-            bpmMax !== undefined
-              ? {
-                  bpm: {
-                    lte: bpmMax,
-                  },
-                }
-              : {},
-          ],
-        },
+        where: whereClause,
         select: {
           id: true,
           title: true,
@@ -345,6 +383,7 @@ export const trackRouter = createTRPCRouter({
               id: true,
               name: true,
               profilePicture: true,
+              tier: true,
             },
           },
         },
@@ -356,38 +395,7 @@ export const trackRouter = createTRPCRouter({
       });
 
       const total = await prisma.track.count({
-        where: {
-          AND: [
-            genres?.length
-              ? {
-                  genres: {
-                    hasSome: genres,
-                  },
-                }
-              : {},
-            moods?.length
-              ? {
-                  moods: {
-                    hasSome: moods,
-                  },
-                }
-              : {},
-            bpmMin !== undefined
-              ? {
-                  bpm: {
-                    gte: bpmMin,
-                  },
-                }
-              : {},
-            bpmMax !== undefined
-              ? {
-                  bpm: {
-                    lte: bpmMax,
-                  },
-                }
-              : {},
-          ],
-        },
+        where: whereClause,
       });
 
       return {

@@ -20,6 +20,7 @@ model User {
   name           String
   profilePicture String?
   type           UserType  @default(ARTIST)
+  tier           UserTier?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   bio            String?
@@ -28,6 +29,11 @@ model User {
   socialLinks    Json?
   company        String?
   location       String?
+
+  uploadLimit      Int?
+  uploadsThisMonth Int       @default(0)
+  lastUploadReset  DateTime?
+
   accounts       Account[]
   sessions       Session[]
   tracks         Track[]
@@ -37,6 +43,9 @@ model User {
   purchases      Purchase[]
   dealsAsArtist  Deal[]    @relation("ArtistDeals")
   dealsAsExec    Deal[]    @relation("ExecDeals")
+  dealsAsRep     Deal[]    @relation("RepDeals")
+  playlistShares PlaylistShare[] @relation("RepShares")
+  execContacts   ExecContact[] @relation("RepContacts")
   chatMessages   ChatMessage[]
   likes          Like[]
   playlists      Playlist[]
@@ -83,6 +92,9 @@ model Track {
   waveformData Float[]
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  artistTier  UserTier?
+
   plays       Play[]
   earnings    Earning[]
   messageThreads MessageThread[]
@@ -97,6 +109,7 @@ model Track {
   playlistTracks PlaylistTrack[]
 
   @@index([userId])
+  @@index([artistTier])
 }
 
 model Play {
@@ -156,13 +169,17 @@ model Deal {
   terms       Json
   createdById String
   createdByRole String
+  createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   trackId     String
   artistId    String
-  execId      String
+  execId      String?  // Nullable for external execs without accounts
+  execEmail   String?  // For external execs without accounts
+  repId       String?  // REP who initiated this deal
+  rep         User?    @relation("RepDeals", fields: [repId], references: [id])
   track       Track    @relation(fields: [trackId], references: [id])
   artist      User     @relation("ArtistDeals", fields: [artistId], references: [id])
-  exec        User     @relation("ExecDeals", fields: [execId], references: [id])
+  exec        User?    @relation("ExecDeals", fields: [execId], references: [id])
   history     DealHistory[]
   chatMessages ChatMessage[]
   playlistShares PlaylistShare[]
@@ -170,6 +187,7 @@ model Deal {
   @@index([trackId])
   @@index([artistId])
   @@index([execId])
+  @@index([repId])
   @@index([state])
 }
 
@@ -246,6 +264,9 @@ model PlaylistShare {
   id         String   @id @default(cuid())
   playlistId String
   email      String
+  shareToken String   @unique @default(cuid()) // Public access token
+  repId      String?  // REP who created this share
+  rep        User?    @relation("RepShares", fields: [repId], references: [id])
   dealId     String?  // Optional: links to deal if created
   deal       Deal?    @relation(fields: [dealId], references: [id])
   playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
@@ -256,10 +277,41 @@ model PlaylistShare {
   @@index([playlistId])
   @@index([email])
   @@index([dealId])
+  @@index([shareToken])
+  @@index([repId])
+}
+
+model ExecContact {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  company   String?
+  title     String?
+  repId     String   // REP who added this contact
+  rep       User     @relation("RepContacts", fields: [repId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastContactedAt DateTime?
+  notes     String?
+
+  @@index([repId])
+  @@index([email])
+  @@index([company])
 }
 
 enum UserType {
   ARTIST
   EXEC
   ADMIN
+  REP
+}
+
+enum UserTier {
+  ARTIST
+  LABEL
+  ROSTERED
+
+  CREATOR
+  STUDIO
+  PRO
 }
