@@ -7,6 +7,7 @@ import { dealRouter } from "./routers/deal";
 import { chatRouter } from "./routers/chat";
 import { likeRouter } from "./routers/like";
 import { playlistRouter } from "./routers/playlist";
+import { repRouter, publicSharedRouter } from "./routers/rep";
 
 export const appRouter = createTRPCRouter({
   user: userRouter,
@@ -17,6 +18,8 @@ export const appRouter = createTRPCRouter({
   chat: chatRouter,
   like: likeRouter,
   playlist: playlistRouter,
+  rep: repRouter,
+  shared: publicSharedRouter,
 });
 
 export type AppRouter = typeof appRouter;

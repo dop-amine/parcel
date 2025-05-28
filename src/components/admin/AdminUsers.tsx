@@ -22,6 +22,8 @@ import {
   Mail
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { getTierBadgeClass, getTierInfo } from '@/utils/tiers';
+import { UserTier } from '@/types/deal';
 
 export default function AdminUsers() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -36,7 +38,7 @@ export default function AdminUsers() {
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
-    role: 'ARTIST' as 'ARTIST' | 'EXEC' | 'ADMIN',
+    role: 'ARTIST' as 'ARTIST' | 'EXEC' | 'ADMIN' | 'REP',
     password: ''
   });
 
@@ -44,45 +46,15 @@ export default function AdminUsers() {
   const [editUser, setEditUser] = useState({
     name: '',
     email: '',
-    role: 'ARTIST' as 'ARTIST' | 'EXEC' | 'ADMIN',
+    role: 'ARTIST' as 'ARTIST' | 'EXEC' | 'ADMIN' | 'REP',
     isActive: true
   });
 
-  // Mock data - replace with actual tRPC calls
-  const { data: users, isLoading, refetch } = api.user.getAllUsers.useQuery(undefined, {
-    placeholderData: [
-      {
-        id: '1',
-        name: 'John Artist',
-        email: 'john@example.com',
-        type: 'ARTIST' as const,
-        isActive: true,
-        createdAt: new Date('2024-01-15'),
-        lastLogin: new Date('2024-01-20'),
-        _count: { tracks: 5, dealsAsArtist: 3, dealsAsExec: 0 }
-      },
-      {
-        id: '2',
-        name: 'Jane Executive',
-        email: 'jane@example.com',
-        type: 'EXEC' as const,
-        isActive: true,
-        createdAt: new Date('2024-01-10'),
-        lastLogin: new Date('2024-01-19'),
-        _count: { tracks: 0, dealsAsArtist: 0, dealsAsExec: 7 }
-      },
-      {
-        id: '3',
-        name: 'Admin User',
-        email: 'admin@example.com',
-        type: 'ADMIN' as const,
-        isActive: true,
-        createdAt: new Date('2024-01-01'),
-        lastLogin: new Date('2024-01-21'),
-        _count: { tracks: 0, dealsAsArtist: 0, dealsAsExec: 0 }
-      }
-    ]
-  });
+  // API calls
+  const { data: users, isLoading, refetch } = api.user.getAllUsers.useQuery();
+  const createUserMutation = api.user.createByAdmin.useMutation();
+  const updateUserMutation = api.user.updateUser.useMutation();
+  const deleteUserMutation = api.user.deleteUser.useMutation();
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -92,6 +64,8 @@ export default function AdminUsers() {
         return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
       case 'ADMIN':
         return 'bg-green-500/10 text-green-400 border-green-500/20';
+      case 'REP':
+        return 'bg-orange-500/10 text-orange-400 border-orange-500/20';
       default:
         return 'bg-gray-500/10 text-gray-400 border-gray-500/20';
     }
@@ -130,9 +104,74 @@ export default function AdminUsers() {
     setIsDeleteModalOpen(true);
   };
 
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await createUserMutation.mutateAsync(newUser);
+      setIsCreateModalOpen(false);
+      setNewUser({ name: '', email: '', role: 'ARTIST', password: '' });
+      refetch();
+    } catch (error) {
+      console.error('Failed to create user:', error);
+    }
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUser) return;
+
+    try {
+      await updateUserMutation.mutateAsync({
+        userId: selectedUser.id,
+        ...editUser,
+      });
+      setIsEditModalOpen(false);
+      setSelectedUser(null);
+      refetch();
+    } catch (error) {
+      console.error('Failed to update user:', error);
+    }
+  };
+
+  const handleConfirmDeleteUser = async () => {
+    if (!selectedUser) return;
+
+    try {
+      await deleteUserMutation.mutateAsync({ userId: selectedUser.id });
+      setIsDeleteModalOpen(false);
+      setSelectedUser(null);
+      refetch();
+    } catch (error) {
+      console.error('Failed to delete user:', error);
+    }
+  };
+
   const exportToCSV = () => {
-    // Implementation for CSV export
-    console.log('Exporting users to CSV...');
+    if (!users) return;
+
+    const headers = ['Name', 'Email', 'Role', 'Status', 'Created At', 'Last Login'];
+    const csvData = users.map(user => [
+      user.name,
+      user.email,
+      user.type,
+      user.isActive ? 'Active' : 'Inactive',
+      new Date(user.createdAt).toLocaleDateString(),
+      user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'
+    ]);
+
+    const csvContent = [headers, ...csvData]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `users_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (isLoading) {
@@ -167,6 +206,7 @@ export default function AdminUsers() {
               <SelectItem value="ARTIST">Artist</SelectItem>
               <SelectItem value="EXEC">Executive</SelectItem>
               <SelectItem value="ADMIN">Admin</SelectItem>
+              <SelectItem value="REP">Rep</SelectItem>
             </SelectContent>
           </Select>
 
@@ -194,6 +234,19 @@ export default function AdminUsers() {
         </div>
       </div>
 
+      {/* Admin Notice */}
+      <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-4">
+        <div className="flex items-center gap-2">
+          <Shield className="h-5 w-5 text-blue-400" />
+          <div>
+            <h3 className="text-sm font-semibold text-blue-400">Admin User Management</h3>
+            <p className="text-xs text-blue-300">
+              You can create all user types including REP and ADMIN accounts. Regular signup only allows ARTIST and EXEC accounts.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Users Table */}
       <div className="rounded-lg border border-gray-800 overflow-hidden">
         <div className="overflow-x-auto">
@@ -202,6 +255,7 @@ export default function AdminUsers() {
               <tr className="border-b border-gray-800 bg-gray-900/50">
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">User</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Role</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Tier</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Status</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Activity</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">Joined</th>
@@ -224,6 +278,13 @@ export default function AdminUsers() {
                     </Badge>
                   </td>
                   <td className="px-4 py-4">
+                    {(user.type === 'ARTIST' || user.type === 'EXEC') && user.tier ? (
+                      <Badge className={getTierBadgeClass(user.tier as UserTier)}>
+                        {getTierInfo(user.tier as UserTier).name}
+                      </Badge>
+                    ) : null}
+                  </td>
+                  <td className="px-4 py-4">
                     <Badge variant="outline" className={getStatusColor(user.isActive)}>
                       {user.isActive ? 'Active' : 'Inactive'}
                     </Badge>
@@ -232,6 +293,7 @@ export default function AdminUsers() {
                     <div className="text-sm text-gray-300">
                       {user.type === 'ARTIST' && `${user._count.tracks} tracks`}
                       {user.type === 'EXEC' && `${user._count.dealsAsExec} deals`}
+                      {user.type === 'REP' && `${user._count.dealsAsExec} deals managed`}
                       {user.type === 'ADMIN' && 'Admin access'}
                     </div>
                   </td>
@@ -254,6 +316,7 @@ export default function AdminUsers() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleEditUser(user)}
+                        disabled={updateUserMutation.isPending}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -262,6 +325,7 @@ export default function AdminUsers() {
                         size="sm"
                         className="text-red-400 hover:text-red-300"
                         onClick={() => handleDeleteUser(user)}
+                        disabled={deleteUserMutation.isPending}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -285,15 +349,9 @@ export default function AdminUsers() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create New User</DialogTitle>
-            <DialogDescription>Add a new user to the platform</DialogDescription>
+            <DialogDescription>Add a new user to the platform with any role</DialogDescription>
           </DialogHeader>
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            // Handle create user
-            console.log('Creating user:', newUser);
-            setIsCreateModalOpen(false);
-            setNewUser({ name: '', email: '', role: 'ARTIST', password: '' });
-          }}>
+          <form onSubmit={handleCreateUser}>
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-gray-300">Name</label>
@@ -323,26 +381,33 @@ export default function AdminUsers() {
                   <SelectContent>
                     <SelectItem value="ARTIST">Artist</SelectItem>
                     <SelectItem value="EXEC">Executive</SelectItem>
-                    <SelectItem value="ADMIN">Admin</SelectItem>
+                    <SelectItem value="REP">Representative</SelectItem>
+                    <SelectItem value="ADMIN">Administrator</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-300">Password</label>
+                <label className="text-sm font-medium text-gray-300">Temporary Password</label>
                 <Input
                   type="password"
                   value={newUser.password}
                   onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                  placeholder="Temporary password"
+                  placeholder="At least 6 characters"
                   required
+                  minLength={6}
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  User should change this password on first login
+                </p>
               </div>
             </div>
             <DialogFooter className="mt-6">
               <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
+                <Button variant="outline" disabled={createUserMutation.isPending}>Cancel</Button>
               </DialogClose>
-              <Button type="submit">Create User</Button>
+              <Button type="submit" disabled={createUserMutation.isPending}>
+                {createUserMutation.isPending ? 'Creating...' : 'Create User'}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -355,12 +420,7 @@ export default function AdminUsers() {
             <DialogTitle>Edit User</DialogTitle>
             <DialogDescription>Modify user details and permissions</DialogDescription>
           </DialogHeader>
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            // Handle edit user
-            console.log('Editing user:', selectedUser?.id, editUser);
-            setIsEditModalOpen(false);
-          }}>
+          <form onSubmit={handleUpdateUser}>
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-gray-300">Name</label>
@@ -388,7 +448,8 @@ export default function AdminUsers() {
                   <SelectContent>
                     <SelectItem value="ARTIST">Artist</SelectItem>
                     <SelectItem value="EXEC">Executive</SelectItem>
-                    <SelectItem value="ADMIN">Admin</SelectItem>
+                    <SelectItem value="REP">Representative</SelectItem>
+                    <SelectItem value="ADMIN">Administrator</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -398,6 +459,7 @@ export default function AdminUsers() {
                   id="isActive"
                   checked={editUser.isActive}
                   onChange={(e) => setEditUser({ ...editUser, isActive: e.target.checked })}
+                  className="rounded"
                 />
                 <label htmlFor="isActive" className="text-sm font-medium text-gray-300">
                   Account Active
@@ -406,9 +468,11 @@ export default function AdminUsers() {
             </div>
             <DialogFooter className="mt-6">
               <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
+                <Button variant="outline" disabled={updateUserMutation.isPending}>Cancel</Button>
               </DialogClose>
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit" disabled={updateUserMutation.isPending}>
+                {updateUserMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -420,24 +484,20 @@ export default function AdminUsers() {
           <DialogHeader>
             <DialogTitle>Delete User</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete <span className="font-semibold">{selectedUser?.name}</span>?
+              Are you sure you want to delete <span className="font-semibold text-white">{selectedUser?.name}</span>?
               This action cannot be undone and will remove all associated data.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">Cancel</Button>
+              <Button variant="outline" disabled={deleteUserMutation.isPending}>Cancel</Button>
             </DialogClose>
             <Button
               variant="destructive"
-              onClick={() => {
-                // Handle delete user
-                console.log('Deleting user:', selectedUser?.id);
-                setIsDeleteModalOpen(false);
-                setSelectedUser(null);
-              }}
+              onClick={handleConfirmDeleteUser}
+              disabled={deleteUserMutation.isPending}
             >
-              Delete User
+              {deleteUserMutation.isPending ? 'Deleting...' : 'Delete User'}
             </Button>
           </DialogFooter>
         </DialogContent>

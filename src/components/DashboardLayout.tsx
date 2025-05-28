@@ -5,8 +5,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { Menu, Shield } from "lucide-react";
+import { Menu, Shield, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { UserTier } from '@/types/deal';
+import { getTierBadgeClass, getTierInfo } from '@/utils/tiers';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -19,6 +21,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const isArtist = session?.user?.role === 'ARTIST';
   const isAdmin = session?.user?.role === 'ADMIN';
+  const isRep = session?.user?.role === 'REP';
 
   const navigation = isAdmin
     ? [
@@ -35,6 +38,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         { name: "My Tracks", href: "/artist/tracks" },
         { name: "Messages", href: "/artist/messages" },
         { name: "Earnings", href: "/artist/earnings" },
+      ]
+    : isRep
+    ? [
+        { name: "Dashboard", href: "/rep/dashboard" },
+        { name: "Explore", href: "/rep/explore" },
+        { name: "Library", href: "/rep/library" },
+        { name: "Messages", href: "/rep/messages" },
+        { name: "Contacts", href: "/rep/contacts" },
       ]
     : [
         { name: "Dashboard", href: "/exec" },
@@ -56,7 +67,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="flex items-center">
               <div className="flex-shrink-0 flex items-center">
                 <Link
-                  href={isAdmin ? "/admin/dashboard" : isArtist ? "/artist/dashboard" : "/exec/dashboard"}
+                  href={isAdmin ? "/admin/dashboard" : isArtist ? "/artist/dashboard" : isRep ? "/rep/dashboard" : "/exec/dashboard"}
                   className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400"
                 >
                   Parcel
@@ -109,7 +120,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         <div className="border-t border-gray-800 mt-2 pt-2 px-4 flex flex-col gap-2">
                           <div className="flex items-center gap-2">
                             <a
-                              href={isAdmin ? '/admin/profile' : isArtist ? '/artist/profile' : '/exec/profile'}
+                              href={isAdmin ? '/admin/profile' : isArtist ? '/artist/profile' : isRep ? '/rep/profile' : '/exec/profile'}
                               className="text-xs text-gray-400 truncate hover:underline"
                             >
                               {session.user.name}
@@ -118,6 +129,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                               <Badge variant="secondary" className="bg-green-500/10 text-green-500">
                                 <Shield className="h-3 w-3 mr-1" />
                                 Admin
+                              </Badge>
+                            )}
+                            {isRep && (
+                              <Badge variant="secondary" className="bg-orange-500/10 text-orange-400">
+                                <Users className="h-3 w-3 mr-1" />
+                                REP
+                              </Badge>
+                            )}
+                            {session?.user?.tier && (
+                              <Badge className={getTierBadgeClass(session.user.tier as UserTier)}>
+                                {getTierInfo(session.user.tier as UserTier).name}
                               </Badge>
                             )}
                           </div>
@@ -139,7 +161,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center gap-2">
                     <a
-                      href={isAdmin ? '/admin/profile' : isArtist ? '/artist/profile' : '/exec/profile'}
+                      href={isAdmin ? '/admin/profile' : isArtist ? '/artist/profile' : isRep ? '/rep/profile' : '/exec/profile'}
                       className="text-sm text-gray-300 hover:underline"
                     >
                       {session?.user?.name}
@@ -148,6 +170,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       <Badge variant="secondary" className="bg-green-500/10 text-green-500">
                         <Shield className="h-3 w-3 mr-1" />
                         Admin
+                      </Badge>
+                    )}
+                    {isRep && (
+                      <Badge variant="secondary" className="bg-orange-500/10 text-orange-400">
+                        <Users className="h-3 w-3 mr-1" />
+                        REP
+                      </Badge>
+                    )}
+                    {session?.user?.tier && (
+                      <Badge className={getTierBadgeClass(session.user.tier as UserTier)}>
+                        {getTierInfo(session.user.tier as UserTier).name}
                       </Badge>
                     )}
                   </div>

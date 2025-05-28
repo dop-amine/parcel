@@ -1,5 +1,8 @@
 -- CreateEnum
-CREATE TYPE "UserType" AS ENUM ('ARTIST', 'EXEC', 'ADMIN');
+CREATE TYPE "UserType" AS ENUM ('ARTIST', 'EXEC', 'ADMIN', 'REP');
+
+-- CreateEnum
+CREATE TYPE "UserTier" AS ENUM ('ARTIST', 'LABEL', 'ROSTERED', 'CREATOR', 'STUDIO', 'PRO');
 
 -- CreateTable
 CREATE TABLE "User" (
@@ -9,6 +12,7 @@ CREATE TABLE "User" (
     "name" TEXT NOT NULL,
     "profilePicture" TEXT,
     "type" "UserType" NOT NULL DEFAULT 'ARTIST',
+    "tier" "UserTier",
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "bio" TEXT,
@@ -17,6 +21,9 @@ CREATE TABLE "User" (
     "socialLinks" JSONB,
     "company" TEXT,
     "location" TEXT,
+    "uploadLimit" INTEGER,
+    "uploadsThisMonth" INTEGER NOT NULL DEFAULT 0,
+    "lastUploadReset" TIMESTAMP(3),
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -63,6 +70,7 @@ CREATE TABLE "Track" (
     "waveformUrl" TEXT,
     "waveformData" DOUBLE PRECISION[],
     "userId" TEXT NOT NULL,
+    "artistTier" "UserTier",
     "basePrice" DOUBLE PRECISION,
     "isNegotiable" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -133,10 +141,13 @@ CREATE TABLE "Deal" (
     "terms" JSONB NOT NULL,
     "createdById" TEXT NOT NULL,
     "createdByRole" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "trackId" TEXT NOT NULL,
     "artistId" TEXT NOT NULL,
-    "execId" TEXT NOT NULL,
+    "execId" TEXT,
+    "execEmail" TEXT,
+    "repId" TEXT,
 
     CONSTRAINT "Deal_pkey" PRIMARY KEY ("id")
 );
@@ -207,12 +218,30 @@ CREATE TABLE "PlaylistShare" (
     "id" TEXT NOT NULL,
     "playlistId" TEXT NOT NULL,
     "email" TEXT NOT NULL,
+    "shareToken" TEXT NOT NULL,
+    "repId" TEXT,
     "dealId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "viewedAt" TIMESTAMP(3),
     "status" TEXT NOT NULL DEFAULT 'PENDING',
 
     CONSTRAINT "PlaylistShare_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ExecContact" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "name" TEXT,
+    "company" TEXT,
+    "title" TEXT,
+    "repId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "lastContactedAt" TIMESTAMP(3),
+    "notes" TEXT,
+
+    CONSTRAINT "ExecContact_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -228,6 +257,9 @@ CREATE UNIQUE INDEX "Session_sessionToken_key" ON "Session"("sessionToken");
 CREATE INDEX "Track_userId_idx" ON "Track"("userId");
 
 -- CreateIndex
+CREATE INDEX "Track_artistTier_idx" ON "Track"("artistTier");
+
+-- CreateIndex
 CREATE INDEX "Deal_trackId_idx" ON "Deal"("trackId");
 
 -- CreateIndex
@@ -235,6 +267,9 @@ CREATE INDEX "Deal_artistId_idx" ON "Deal"("artistId");
 
 -- CreateIndex
 CREATE INDEX "Deal_execId_idx" ON "Deal"("execId");
+
+-- CreateIndex
+CREATE INDEX "Deal_repId_idx" ON "Deal"("repId");
 
 -- CreateIndex
 CREATE INDEX "Deal_state_idx" ON "Deal"("state");
@@ -267,6 +302,9 @@ CREATE INDEX "PlaylistTrack_trackId_idx" ON "PlaylistTrack"("trackId");
 CREATE UNIQUE INDEX "PlaylistTrack_playlistId_trackId_key" ON "PlaylistTrack"("playlistId", "trackId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "PlaylistShare_shareToken_key" ON "PlaylistShare"("shareToken");
+
+-- CreateIndex
 CREATE INDEX "PlaylistShare_playlistId_idx" ON "PlaylistShare"("playlistId");
 
 -- CreateIndex
@@ -274,6 +312,24 @@ CREATE INDEX "PlaylistShare_email_idx" ON "PlaylistShare"("email");
 
 -- CreateIndex
 CREATE INDEX "PlaylistShare_dealId_idx" ON "PlaylistShare"("dealId");
+
+-- CreateIndex
+CREATE INDEX "PlaylistShare_shareToken_idx" ON "PlaylistShare"("shareToken");
+
+-- CreateIndex
+CREATE INDEX "PlaylistShare_repId_idx" ON "PlaylistShare"("repId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ExecContact_email_key" ON "ExecContact"("email");
+
+-- CreateIndex
+CREATE INDEX "ExecContact_repId_idx" ON "ExecContact"("repId");
+
+-- CreateIndex
+CREATE INDEX "ExecContact_email_idx" ON "ExecContact"("email");
+
+-- CreateIndex
+CREATE INDEX "ExecContact_company_idx" ON "ExecContact"("company");
 
 -- AddForeignKey
 ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -315,13 +371,16 @@ ALTER TABLE "Purchase" ADD CONSTRAINT "Purchase_trackId_fkey" FOREIGN KEY ("trac
 ALTER TABLE "Purchase" ADD CONSTRAINT "Purchase_execId_fkey" FOREIGN KEY ("execId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Deal" ADD CONSTRAINT "Deal_repId_fkey" FOREIGN KEY ("repId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Deal" ADD CONSTRAINT "Deal_trackId_fkey" FOREIGN KEY ("trackId") REFERENCES "Track"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Deal" ADD CONSTRAINT "Deal_artistId_fkey" FOREIGN KEY ("artistId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Deal" ADD CONSTRAINT "Deal_execId_fkey" FOREIGN KEY ("execId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Deal" ADD CONSTRAINT "Deal_execId_fkey" FOREIGN KEY ("execId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "DealHistory" ADD CONSTRAINT "DealHistory_dealId_fkey" FOREIGN KEY ("dealId") REFERENCES "Deal"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -348,7 +407,13 @@ ALTER TABLE "PlaylistTrack" ADD CONSTRAINT "PlaylistTrack_playlistId_fkey" FOREI
 ALTER TABLE "PlaylistTrack" ADD CONSTRAINT "PlaylistTrack_trackId_fkey" FOREIGN KEY ("trackId") REFERENCES "Track"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "PlaylistShare" ADD CONSTRAINT "PlaylistShare_repId_fkey" FOREIGN KEY ("repId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "PlaylistShare" ADD CONSTRAINT "PlaylistShare_dealId_fkey" FOREIGN KEY ("dealId") REFERENCES "Deal"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "PlaylistShare" ADD CONSTRAINT "PlaylistShare_playlistId_fkey" FOREIGN KEY ("playlistId") REFERENCES "Playlist"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ExecContact" ADD CONSTRAINT "ExecContact_repId_fkey" FOREIGN KEY ("repId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

@@ -39,17 +39,35 @@ export async function middleware(request: NextRequest) {
   // Handle role-based routing
   const isArtist = token.role === 'ARTIST';
   const isExec = token.role === 'EXEC';
+  const isRep = token.role === 'REP';
+  const isAdmin = token.role === 'ADMIN';
   const isOnArtistRoute = pathname.startsWith('/artist');
   const isOnExecRoute = pathname.startsWith('/exec') || pathname === '/explore';
+  const isOnRepRoute = pathname.startsWith('/rep');
+  const isOnAdminRoute = pathname.startsWith('/admin');
 
-  // Redirect artists trying to access exec routes
-  if (isArtist && isOnExecRoute) {
+  // TODO: Add tier-based restrictions here when needed
+  // For now, tiers share the same routes within their role
+  const userTier = token.tier as string | undefined;
+
+  // Redirect artists trying to access exec/rep/admin routes
+  if (isArtist && (isOnExecRoute || isOnRepRoute || isOnAdminRoute)) {
     return NextResponse.redirect(new URL('/artist/dashboard', request.url));
   }
 
-  // Redirect execs trying to access artist routes
-  if (isExec && isOnArtistRoute) {
+  // Redirect execs trying to access artist/rep/admin routes
+  if (isExec && (isOnArtistRoute || isOnRepRoute || isOnAdminRoute)) {
     return NextResponse.redirect(new URL('/exec/dashboard', request.url));
+  }
+
+  // Redirect reps trying to access artist/exec/admin routes
+  if (isRep && (isOnArtistRoute || isOnExecRoute || isOnAdminRoute)) {
+    return NextResponse.redirect(new URL('/rep/dashboard', request.url));
+  }
+
+  // Redirect admins to admin dashboard if not on admin routes
+  if (isAdmin && !isOnAdminRoute && !publicRoutes.includes(pathname)) {
+    return NextResponse.redirect(new URL('/admin/dashboard', request.url));
   }
 
   // Ensure users are on their correct role-based routes
@@ -59,6 +77,10 @@ export async function middleware(request: NextRequest) {
 
   if (isExec && !isOnExecRoute && !publicRoutes.includes(pathname)) {
     return NextResponse.redirect(new URL('/exec/dashboard', request.url));
+  }
+
+  if (isRep && !isOnRepRoute && !publicRoutes.includes(pathname)) {
+    return NextResponse.redirect(new URL('/rep/dashboard', request.url));
   }
 
   // Handle /explore redirect for execs

@@ -1,4 +1,40 @@
-export type UserRole = "ARTIST" | "EXEC" | "ADMIN";
+export type UserRole = "ARTIST" | "EXEC" | "ADMIN" | "REP";
+
+export type ArtistTier = "ARTIST" | "LABEL" | "ROSTERED";
+export type BuyerTier = "CREATOR" | "STUDIO" | "PRO";
+export type UserTier = ArtistTier | BuyerTier;
+
+// Utility functions for tier checking
+export const isArtistTier = (tier: UserTier): tier is ArtistTier => {
+  return ['ARTIST', 'LABEL', 'ROSTERED'].includes(tier);
+};
+
+export const isBuyerTier = (tier: UserTier): tier is BuyerTier => {
+  return ['CREATOR', 'STUDIO', 'PRO'].includes(tier);
+};
+
+export const getArtistTierDisplayName = (tier: ArtistTier): string => {
+  switch (tier) {
+    case 'ARTIST': return 'Artist';
+    case 'LABEL': return 'Label';
+    case 'ROSTERED': return 'Rostered';
+  }
+};
+
+export const getBuyerTierDisplayName = (tier: BuyerTier): string => {
+  switch (tier) {
+    case 'CREATOR': return 'Creator';
+    case 'STUDIO': return 'Studio';
+    case 'PRO': return 'Pro';
+  }
+};
+
+export const getTierDisplayName = (tier: UserTier): string => {
+  if (isArtistTier(tier)) {
+    return getArtistTierDisplayName(tier);
+  }
+  return getBuyerTierDisplayName(tier);
+};
 
 export type DealStatus = "PENDING" | "COUNTERED" | "ACCEPTED" | "DECLINED" | "AWAITING_RESPONSE" | "CANCELLED";
 
@@ -50,7 +86,7 @@ export const DEAL_STATE_TRANSITIONS: DealStateTransition[] = [
   {
     from: "PENDING",
     to: "COUNTERED",
-    allowedRoles: ["ARTIST", "EXEC"],
+    allowedRoles: ["ARTIST", "EXEC", "REP"],
   },
   {
     from: "PENDING",
@@ -65,12 +101,12 @@ export const DEAL_STATE_TRANSITIONS: DealStateTransition[] = [
   {
     from: "PENDING",
     to: "CANCELLED",
-    allowedRoles: ["EXEC"],
+    allowedRoles: ["EXEC", "REP"],
   },
   {
     from: "COUNTERED",
     to: "PENDING",
-    allowedRoles: ["EXEC"],
+    allowedRoles: ["EXEC", "REP"],
   },
   {
     from: "COUNTERED",
@@ -85,7 +121,7 @@ export const DEAL_STATE_TRANSITIONS: DealStateTransition[] = [
   {
     from: "COUNTERED",
     to: "CANCELLED",
-    allowedRoles: ["EXEC"],
+    allowedRoles: ["EXEC", "REP"],
   },
   {
     from: "AWAITING_RESPONSE",
@@ -100,7 +136,7 @@ export const DEAL_STATE_TRANSITIONS: DealStateTransition[] = [
   {
     from: "AWAITING_RESPONSE",
     to: "CANCELLED",
-    allowedRoles: ["EXEC"],
+    allowedRoles: ["EXEC", "REP"],
   },
   {
     from: "AWAITING_RESPONSE",

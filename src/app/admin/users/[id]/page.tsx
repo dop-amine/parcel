@@ -8,6 +8,8 @@ import { formatDistanceToNow } from 'date-fns'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Deal, Track, User } from '@prisma/client'
+import { getTierBadgeClass, getTierInfo } from '@/utils/tiers'
+import { UserTier } from '@/types/deal'
 
 type DealWithRelations = Deal & {
   track: Track
@@ -109,6 +111,17 @@ export default async function UserDetails({
                 <Badge className={getRoleColor(user.type)}>
                   {user.type}
                 </Badge>
+                {user.tier && (
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-400">Tier</p>
+                    <Badge className={getTierBadgeClass(user.tier as UserTier)}>
+                      {getTierInfo(user.tier as UserTier).name}
+                    </Badge>
+                    <div className="text-xs text-gray-400 mt-1">
+                      {getTierInfo(user.tier as UserTier).description}
+                    </div>
+                  </div>
+                )}
               </div>
               <div>
                 <p className="text-sm text-gray-400">Joined</p>

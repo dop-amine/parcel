@@ -1,32 +1,44 @@
 'use client';
 
 import { useState } from "react";
+import { useSession } from 'next-auth/react';
+import { redirect } from 'next/navigation';
 import { api } from "@/utils/api";
 import TrackCard from "@/components/TrackCard";
 import SidebarFilters from "@/components/SidebarFilters";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePlayerStore } from "@/stores/playerStore";
-import { useSession } from 'next-auth/react';
+import { Users, Music, Star, PlayCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
-export default function ExplorePage() {
+export default function RepExplore() {
+  const { data: session, status } = useSession();
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [bpmMin, setBpmMin] = useState<string>("");
   const [bpmMax, setBpmMax] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [showAll, setShowAll] = useState(false);
 
-  const { data: session } = useSession();
-
-  const { data, isLoading, error } = api.track.getAllPublic.useQuery({
+  const { data, isLoading, error, refetch } = api.track.getAllPublic.useQuery({
     page: 1,
     limit: 100,
-    showAll,
   });
 
   const { data: likedTracksData } = api.like.getLikedTracks.useQuery();
   const likedTrackIds = new Set((likedTracksData ?? []).map((like: any) => like.track.id));
+
+  if (status === 'loading') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
+
+  if (!session || session.user.role !== 'REP') {
+    redirect('/');
+  }
 
   const clearFilters = () => {
     setSelectedGenres([]);
@@ -97,7 +109,18 @@ export default function ExplorePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-gray-950">
+        {/* REP Header */}
+        <header className="w-full px-8 py-6 flex items-center justify-between border-b border-gray-800 bg-black/60 sticky top-0 z-20">
+          <div className="flex items-center gap-3">
+            <Users className="h-6 w-6 text-orange-400" />
+            <h1 className="text-3xl font-extrabold text-white tracking-tight">Explore Music</h1>
+          </div>
+          <Badge variant="secondary" className="bg-orange-900/50 text-orange-400 border-orange-500/50">
+            REP
+          </Badge>
+        </header>
+
         <div className="container mx-auto max-w-7xl px-4 py-8">
           <div className="grid gap-6 md:grid-cols-4">
             <div className="md:col-span-1">
@@ -118,7 +141,18 @@ export default function ExplorePage() {
 
   if (error) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-gray-950">
+        {/* REP Header */}
+        <header className="w-full px-8 py-6 flex items-center justify-between border-b border-gray-800 bg-black/60 sticky top-0 z-20">
+          <div className="flex items-center gap-3">
+            <Users className="h-6 w-6 text-orange-400" />
+            <h1 className="text-3xl font-extrabold text-white tracking-tight">Explore Music</h1>
+          </div>
+          <Badge variant="secondary" className="bg-orange-900/50 text-orange-400 border-orange-500/50">
+            REP
+          </Badge>
+        </header>
+
         <div className="container mx-auto max-w-7xl px-4 py-8">
           <div className="rounded-lg bg-red-900/50 p-4 text-red-400">
             Error loading tracks: {error.message}
@@ -129,10 +163,38 @@ export default function ExplorePage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gray-950">
+      {/* REP Header */}
+      <header className="w-full px-8 py-6 flex items-center justify-between border-b border-gray-800 bg-black/60 sticky top-0 z-20">
+        <div className="flex items-center gap-3">
+          <Users className="h-6 w-6 text-orange-400" />
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">Explore Music</h1>
+        </div>
+        <div className="flex items-center gap-4">
+          {/* REP Stats */}
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-2 text-gray-400">
+              <Music className="h-4 w-4" />
+              <span>{data?.tracks.length || 0} tracks available</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-400">
+              <Star className="h-4 w-4" />
+              <span>Curate & share playlists</span>
+            </div>
+          </div>
+          <Badge variant="secondary" className="bg-orange-900/50 text-orange-400 border-orange-500/50">
+            REP
+          </Badge>
+        </div>
+      </header>
+
       <div className="container mx-auto max-w-7xl px-4 py-8">
         <div className="grid gap-6 md:grid-cols-4">
           <div className="md:col-span-1">
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-gray-200 mb-2">Music Discovery</h2>
+              <p className="text-sm text-gray-400 mb-4">Find tracks to build playlists for licensing opportunities</p>
+            </div>
             <SidebarFilters
               selectedGenres={selectedGenres}
               selectedMoods={selectedMoods}
@@ -142,20 +204,27 @@ export default function ExplorePage() {
               onUpdate={handleFilterUpdate}
               onClear={clearFilters}
             />
-
-            {/* PRO toggle */}
-            {session?.user?.tier === 'PRO' && (
-              <button
-                type="button"
-                onClick={() => setShowAll((prev) => !prev)}
-                className={`mt-6 w-full text-sm rounded-lg border px-4 py-2 transition-colors ${showAll ? 'bg-purple-600 border-purple-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700'}`}
-              >
-                {showAll ? 'Showing All Tracks' : 'Show All Tracks (Artist & Label)'}
-              </button>
-            )}
           </div>
 
           <div className="md:col-span-3">
+            {/* REP Tools */}
+            <div className="mb-6 p-4 rounded-lg bg-gray-900/50 border border-gray-800">
+              <h3 className="text-lg font-semibold text-white mb-2">Representative Tools</h3>
+              <div className="flex items-center gap-4 text-sm text-gray-400">
+                <div className="flex items-center gap-2">
+                  <PlayCircle className="h-4 w-4" />
+                  <span>Add tracks to playlists</span>
+                </div>
+                <span>&bull;</span>
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  <span>Share curated playlists with execs</span>
+                </div>
+                <span>&bull;</span>
+                <span>Facilitate licensing deals</span>
+              </div>
+            </div>
+
             {filteredTracks?.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
@@ -185,6 +254,7 @@ export default function ExplorePage() {
                         }}
                         onClickTag={handleTagClick}
                         liked={likedTrackIds.has(track.id)}
+                        onRefetch={refetch}
                       />
                     </motion.div>
                   ))}

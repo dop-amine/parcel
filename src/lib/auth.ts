@@ -6,6 +6,7 @@ import { compare } from 'bcryptjs';
 declare module 'next-auth' {
   interface User {
     role: string;
+    tier?: string;
   }
 
   interface Session {
@@ -14,6 +15,7 @@ declare module 'next-auth' {
       name: string | null;
       email: string | null;
       role: string;
+      tier?: string;
     };
   }
 }
@@ -52,6 +54,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           role: user.type,
+          tier: user.tier || undefined,
         };
       }
     })
@@ -74,6 +77,7 @@ export const authOptions: NextAuthOptions = {
           session.user.name = user.name;
           session.user.email = user.email;
           session.user.role = user.type;
+          session.user.tier = user.tier || undefined;
           // Add any other fields you want to keep in sync
         } else {
           // fallback to token if user not found
@@ -81,6 +85,7 @@ export const authOptions: NextAuthOptions = {
           session.user.name = token.name ?? null;
           session.user.email = token.email ?? null;
           session.user.role = token.role as string;
+          session.user.tier = token.tier as string | undefined;
         }
       }
       return session;
@@ -91,6 +96,7 @@ export const authOptions: NextAuthOptions = {
         token.name = user.name;
         token.email = user.email;
         token.role = user.role;
+        token.tier = user.tier;
       }
       return token;
     }
