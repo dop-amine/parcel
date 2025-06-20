@@ -16,6 +16,18 @@ import {
   DialogDescription,
   DialogClose,
 } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import {
+  MEDIA_TYPES,
+  LICENSE_TYPES,
+  ROYALTY_COLLECTION_ENTITIES,
+  DISALLOWED_USES,
+  ENTITY_TYPES,
+  PUBLISHER_TYPES,
+  SONGWRITER_ROLES,
+  PERFORMING_RIGHTS_ORGS,
+  getMediaTypeCategory
+} from '@/constants/music';
 import { useState } from 'react';
 
 interface TrackType {
@@ -31,6 +43,35 @@ interface TrackType {
   createdAt: string | Date;
   _count: { plays: number; purchases: number };
   user: { id: string; name: string | null; profilePicture: string | null };
+  // Basic Song Info
+  isrcCode: string | null;
+  iswcCode: string | null;
+  // Ownership & Rights
+  ownsFullRights: boolean;
+  masterOwners: any; // JSON array
+  publishingOwners: any; // JSON array
+  songwriters: any; // JSON array
+  // Sync Licensing Preferences
+  minimumSyncFee: number | null;
+  allowedMediaTypes: string[];
+  licenseType: string | null;
+  canBeModified: boolean;
+  disallowedUses: string | null;
+  // Revenue & Payment Info
+  royaltyCollectionEntity: string | null;
+  splitConfirmation: boolean;
+  basePrice: number | null;
+  isNegotiable: boolean;
+  // New pricing structure
+  trackPricing: Array<{
+    id: string;
+    mediaTypeId: string;
+    mediaTypeCategory: string;
+    basePrice: number;
+    buyoutPrice: number | null;
+    hasInstantBuy: boolean;
+    lowestPrice: number;
+  }>;
 }
 
 function LoadingSpinner() {
@@ -187,38 +228,333 @@ function TracksList() {
         </DialogContent>
       </Dialog>
       <Dialog open={!!openTrack} onOpenChange={(open) => !open && setOpenTrack(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-gray-900 border-gray-800">
           {openTrack && (
             <>
               <DialogHeader>
-                <DialogTitle>{openTrack.title}</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-2xl font-bold text-white flex items-center gap-3">
+                  {openTrack.title}
+                  {openTrack.ownsFullRights && (
+                    <span className="bg-green-600/20 text-green-400 px-3 py-1 rounded-full text-sm font-medium border border-green-600/30">
+                      One-Stop Cleared
+                    </span>
+                  )}
+                </DialogTitle>
+                <DialogDescription className="text-gray-400">
                   Uploaded {formatDistanceToNow(new Date(openTrack.createdAt), { addSuffix: true })}
                 </DialogDescription>
               </DialogHeader>
-              <div className="mt-4">
-                <p className="text-gray-300 mb-2">{openTrack.description}</p>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {openTrack.genres.map((genre) => (
-                    <span key={genre} className="bg-purple-900/50 text-purple-200 text-xs px-2 py-1 rounded-full">
-                      {genre}
-                    </span>
-                  ))}
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-6">
+
+                {/* LEFT COLUMN */}
+                <div className="space-y-6">
+
+                  {/* Basic Information */}
+                  <div className="bg-gray-900/50 rounded-lg p-5 border border-gray-800">
+                    <h3 className="text-lg font-semibold text-white mb-4 border-b border-gray-700 pb-2">
+                      Basic Information
+                    </h3>
+                    <div className="space-y-4">
+                      {openTrack.description && (
+                        <div>
+                          <p className="text-sm text-gray-400">Description</p>
+                          <p className="text-gray-300">{openTrack.description}</p>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-400">BPM</p>
+                          <p className="text-gray-300">{openTrack.bpm || 'Not specified'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-400">Duration</p>
+                          <p className="text-gray-300">{Math.floor(openTrack.duration / 60)}:{String(Math.floor(openTrack.duration % 60)).padStart(2, '0')}</p>
+                        </div>
+                      </div>
+
+                      {(openTrack.isrcCode || openTrack.iswcCode) && (
+                        <div className="grid grid-cols-2 gap-4">
+                          {openTrack.isrcCode && (
+                            <div>
+                              <p className="text-sm text-gray-400">ISRC Code</p>
+                              <p className="text-gray-300 font-mono text-sm">{openTrack.isrcCode}</p>
+                            </div>
+                          )}
+                          {openTrack.iswcCode && (
+                            <div>
+                              <p className="text-sm text-gray-400">ISWC Code</p>
+                              <p className="text-gray-300 font-mono text-sm">{openTrack.iswcCode}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div>
+                        <p className="text-sm text-gray-400 mb-2">Genres</p>
+                        <div className="flex flex-wrap gap-2">
+                          {openTrack.genres.map((genre) => (
+                            <Badge key={genre} className="bg-purple-900/50 text-purple-200 border-purple-700">
+                              {genre}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-sm text-gray-400 mb-2">Moods</p>
+                        <div className="flex flex-wrap gap-2">
+                          {openTrack.moods.map((mood) => (
+                            <Badge key={mood} className="bg-blue-900/50 text-blue-200 border-blue-700">
+                              {mood}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Ownership & Rights */}
+                  <div className="bg-gray-900/50 rounded-lg p-5 border border-gray-800">
+                    <h3 className="text-lg font-semibold text-white mb-4 border-b border-gray-700 pb-2">
+                      Ownership & Rights
+                    </h3>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm text-gray-400">Full Rights Ownership</p>
+                        <p className="text-gray-300 font-medium">
+                          {openTrack.ownsFullRights
+                            ? 'Yes - I own 100% of Master and Publishing rights'
+                            : 'No - Split ownership'
+                          }
+                        </p>
+                      </div>
+
+                      {!openTrack.ownsFullRights && (
+                        <>
+                          {openTrack.masterOwners && Array.isArray(openTrack.masterOwners) && openTrack.masterOwners.length > 0 && (
+                            <div>
+                              <p className="text-sm text-gray-400 mb-2 font-medium">Master Rights Co-Owners</p>
+                              <div className="space-y-2">
+                                {openTrack.masterOwners.map((owner: any, index: number) => (
+                                  <div key={index} className="bg-gray-800/50 border border-gray-700 rounded p-3">
+                                    <div className="flex justify-between items-start">
+                                      <div>
+                                        <p className="text-gray-300 font-medium">{owner.name}</p>
+                                        <p className="text-gray-400 text-sm">{owner.email}</p>
+                                        {owner.entityType && (
+                                          <p className="text-gray-500 text-xs mt-1">
+                                            {ENTITY_TYPES.find(et => et.id === owner.entityType)?.label}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <span className="bg-purple-900/30 text-purple-300 px-2 py-1 rounded text-sm font-medium">
+                                        {owner.percentage}%
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {openTrack.publishingOwners && Array.isArray(openTrack.publishingOwners) && openTrack.publishingOwners.length > 0 && (
+                            <div>
+                              <p className="text-sm text-gray-400 mb-2 font-medium">Publishing Rights Co-Owners</p>
+                              <div className="space-y-2">
+                                {openTrack.publishingOwners.map((owner: any, index: number) => (
+                                  <div key={index} className="bg-gray-800/50 border border-gray-700 rounded p-3">
+                                    <div className="flex justify-between items-start">
+                                      <div>
+                                        <p className="text-gray-300 font-medium">{owner.publisherName || owner.name}</p>
+                                        <p className="text-gray-400 text-sm">{owner.contactEmail || owner.email}</p>
+                                        {owner.publisherType && (
+                                          <p className="text-gray-500 text-xs mt-1">
+                                            {PUBLISHER_TYPES.find(pt => pt.id === owner.publisherType)?.label}
+                                          </p>
+                                        )}
+                                        {owner.proAffiliation && (
+                                          <p className="text-gray-500 text-xs">
+                                            PRO: {PERFORMING_RIGHTS_ORGS.find(pro => pro.id === owner.proAffiliation)?.label}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <span className="bg-blue-900/30 text-blue-300 px-2 py-1 rounded text-sm font-medium">
+                                        {owner.percentage}%
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {openTrack.songwriters && Array.isArray(openTrack.songwriters) && openTrack.songwriters.length > 0 && (
+                            <div>
+                              <p className="text-sm text-gray-400 mb-2 font-medium">Songwriters</p>
+                              <div className="space-y-2">
+                                {openTrack.songwriters.map((songwriter: any, index: number) => (
+                                  <div key={index} className="bg-gray-800/50 border border-gray-700 rounded p-3">
+                                    <div className="flex justify-between items-start">
+                                      <div>
+                                        <p className="text-gray-300 font-medium">{songwriter.name}</p>
+                                        <p className="text-gray-400 text-sm">{songwriter.email}</p>
+                                        {songwriter.role && (
+                                          <p className="text-gray-500 text-xs mt-1">
+                                            {SONGWRITER_ROLES.find(sr => sr.id === songwriter.role)?.label}
+                                          </p>
+                                        )}
+                                        {songwriter.proAffiliation && (
+                                          <p className="text-gray-500 text-xs">
+                                            PRO: {PERFORMING_RIGHTS_ORGS.find(pro => pro.id === songwriter.proAffiliation)?.label}
+                                          </p>
+                                        )}
+                                      </div>
+                                      {songwriter.writingSharePercentage && (
+                                        <span className="bg-green-900/30 text-green-300 px-2 py-1 rounded text-sm font-medium">
+                                          {songwriter.writingSharePercentage}%
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+
                 </div>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {openTrack.moods.map((mood) => (
-                    <span key={mood} className="bg-blue-900/50 text-blue-200 text-xs px-2 py-1 rounded-full">
-                      {mood}
-                    </span>
-                  ))}
-                </div>
-                <div className="flex gap-4 text-sm text-gray-400 mb-2">
-                  <span>BPM: {openTrack.bpm || '—'}</span>
-                  <span>Duration: {Math.floor(openTrack.duration / 60)}:{String(Math.floor(openTrack.duration % 60)).padStart(2, '0')}</span>
-                </div>
-                <div className="flex gap-4 text-sm text-gray-400 mb-2">
-                  <span>Plays: {openTrack._count.plays}</span>
-                  <span>Purchases: {openTrack._count.purchases}</span>
+
+                {/* RIGHT COLUMN */}
+                <div className="space-y-6">
+
+                  {/* Sync Licensing & Pricing */}
+                  <div className="bg-gray-900/50 rounded-lg p-5 border border-gray-800">
+                    <h3 className="text-lg font-semibold text-white mb-4 border-b border-gray-700 pb-2">
+                      Sync Licensing & Pricing
+                    </h3>
+                    <div className="space-y-4">
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-400">License Type</p>
+                          <p className="text-gray-300 capitalize font-medium">
+                            {openTrack.licenseType
+                              ? LICENSE_TYPES.find(type => type.id === openTrack.licenseType)?.label || openTrack.licenseType
+                              : 'Not specified'
+                            }
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-400">Can Be Modified</p>
+                          <p className="text-gray-300 font-medium">{openTrack.canBeModified ? 'Yes' : 'No'}</p>
+                        </div>
+                      </div>
+
+                      {/* Updated Media Types & Pricing Section */}
+                      {openTrack.trackPricing && openTrack.trackPricing.length > 0 ? (
+                        <div>
+                          <p className="text-sm text-gray-400 mb-3 font-medium">Usage Types & Pricing</p>
+                          <div className="space-y-3">
+                            {openTrack.trackPricing.map((pricing) => {
+                              const mediaType = MEDIA_TYPES.find(mt => mt.id === pricing.mediaTypeId);
+
+                              return (
+                                <div key={pricing.id} className="bg-gray-800/50 border border-gray-700 rounded p-3">
+                                  <div className="flex items-center justify-between mb-3">
+                                    <span className="text-gray-300 font-medium">{mediaType?.label}</span>
+                                    {pricing.hasInstantBuy && (
+                                      <span className="text-xs text-green-400 bg-green-600/20 border border-green-600/30 px-2 py-1 rounded">
+                                        One-Click Available
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm text-gray-400">Base Price:</span>
+                                      <span className="text-gray-300 font-medium">${pricing.basePrice.toLocaleString()}</span>
+                                    </div>
+
+                                    {pricing.buyoutPrice && (
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-400">Buyout Price:</span>
+                                        <span className="text-green-400 font-medium">${pricing.buyoutPrice.toLocaleString()}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : openTrack.allowedMediaTypes && openTrack.allowedMediaTypes.length > 0 ? (
+                        <div>
+                          <p className="text-sm text-gray-400 mb-3 font-medium">Allowed Media Types</p>
+                          <div className="space-y-3">
+                            {openTrack.allowedMediaTypes.map((mediaTypeId) => {
+                              const mediaType = MEDIA_TYPES.find(mt => mt.id === mediaTypeId);
+                              const category = getMediaTypeCategory(mediaTypeId);
+
+                              return (
+                                <div key={mediaTypeId} className="bg-gray-800/50 border border-gray-700 rounded p-3">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-gray-300 font-medium">{mediaType?.label}</span>
+                                    <span className="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded">
+                                      {category === 'traditional' ? 'Contact for pricing' : 'Contact for pricing'}
+                                    </span>
+                                  </div>
+                                  <div className="text-sm text-gray-400">
+                                    Pricing available upon request
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center text-gray-500 py-4">
+                          <p>No pricing information available</p>
+                          <p className="text-xs mt-1">Upload a new track to set detailed pricing</p>
+                        </div>
+                      )}
+
+                      {openTrack.disallowedUses && (
+                        <div>
+                          <p className="text-sm text-gray-400 mb-2 font-medium">Disallowed Uses</p>
+                          <div className="flex flex-wrap gap-2">
+                            {openTrack.disallowedUses.split(',').map((use: string, index: number) => (
+                              <Badge key={index} className="bg-red-900/30 text-red-300 border-red-700">
+                                {DISALLOWED_USES.find(du => du.id === use.trim())?.label || use.trim()}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Performance Stats */}
+                  <div className="bg-gray-900/50 rounded-lg p-5 border border-gray-800">
+                    <h3 className="text-lg font-semibold text-white mb-4 border-b border-gray-700 pb-2">
+                      Performance
+                    </h3>
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-purple-400">{openTrack._count.plays}</div>
+                        <p className="text-sm text-gray-400">Total Plays</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-green-400">{openTrack._count.purchases}</div>
+                        <p className="text-sm text-gray-400">Purchases</p>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               </div>
             </>

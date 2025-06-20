@@ -71,12 +71,41 @@ CREATE TABLE "Track" (
     "waveformData" DOUBLE PRECISION[],
     "userId" TEXT NOT NULL,
     "artistTier" "UserTier",
+    "isrcCode" TEXT,
+    "iswcCode" TEXT,
+    "ownsFullRights" BOOLEAN NOT NULL DEFAULT true,
+    "masterOwners" JSONB,
+    "publishingOwners" JSONB,
+    "songwriters" JSONB,
+    "minimumSyncFee" DOUBLE PRECISION,
+    "allowedMediaTypes" TEXT[],
+    "licenseType" TEXT,
+    "canBeModified" BOOLEAN NOT NULL DEFAULT false,
+    "disallowedUses" TEXT,
+    "royaltyCollectionEntity" TEXT,
+    "splitConfirmation" BOOLEAN NOT NULL DEFAULT false,
     "basePrice" DOUBLE PRECISION,
     "isNegotiable" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Track_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TrackPricing" (
+    "id" TEXT NOT NULL,
+    "trackId" TEXT NOT NULL,
+    "mediaTypeId" TEXT NOT NULL,
+    "mediaTypeCategory" TEXT NOT NULL,
+    "basePrice" DOUBLE PRECISION NOT NULL,
+    "buyoutPrice" DOUBLE PRECISION,
+    "hasInstantBuy" BOOLEAN NOT NULL DEFAULT false,
+    "lowestPrice" DOUBLE PRECISION NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "TrackPricing_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -260,6 +289,27 @@ CREATE INDEX "Track_userId_idx" ON "Track"("userId");
 CREATE INDEX "Track_artistTier_idx" ON "Track"("artistTier");
 
 -- CreateIndex
+CREATE INDEX "TrackPricing_trackId_idx" ON "TrackPricing"("trackId");
+
+-- CreateIndex
+CREATE INDEX "TrackPricing_mediaTypeId_idx" ON "TrackPricing"("mediaTypeId");
+
+-- CreateIndex
+CREATE INDEX "TrackPricing_mediaTypeCategory_idx" ON "TrackPricing"("mediaTypeCategory");
+
+-- CreateIndex
+CREATE INDEX "TrackPricing_hasInstantBuy_idx" ON "TrackPricing"("hasInstantBuy");
+
+-- CreateIndex
+CREATE INDEX "TrackPricing_lowestPrice_idx" ON "TrackPricing"("lowestPrice");
+
+-- CreateIndex
+CREATE INDEX "TrackPricing_buyoutPrice_idx" ON "TrackPricing"("buyoutPrice");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TrackPricing_trackId_mediaTypeId_key" ON "TrackPricing"("trackId", "mediaTypeId");
+
+-- CreateIndex
 CREATE INDEX "Deal_trackId_idx" ON "Deal"("trackId");
 
 -- CreateIndex
@@ -339,6 +389,9 @@ ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId"
 
 -- AddForeignKey
 ALTER TABLE "Track" ADD CONSTRAINT "Track_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TrackPricing" ADD CONSTRAINT "TrackPricing_trackId_fkey" FOREIGN KEY ("trackId") REFERENCES "Track"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Play" ADD CONSTRAINT "Play_trackId_fkey" FOREIGN KEY ("trackId") REFERENCES "Track"("id") ON DELETE CASCADE ON UPDATE CASCADE;
