@@ -95,14 +95,38 @@ model Track {
 
   artistTier  UserTier?
 
+  // Basic Song Info (existing + new)
+  isrcCode    String?   // ISRC Code
+  iswcCode    String?   // ISWC Code
+
+  // Ownership & Rights
+  ownsFullRights Boolean @default(true) // Owns 100% of Master and Publishing
+  masterOwners   Json?   // Array of {name, email, percentage}
+  publishingOwners Json? // Array of {name, email, percentage}
+  songwriters     Json?   // Array of {name, email, role}
+
+  // Sync Licensing Preferences
+  minimumSyncFee  Float?   // Minimum sync fee in USD
+  allowedMediaTypes String[] // Array of allowed media types
+  licenseType     String?   // Exclusive or Non-exclusive
+  canBeModified   Boolean @default(false) // Can this track be modified
+  disallowedUses  String?   // Freeform text for disallowed uses
+
+  // Revenue & Payment Info
+  royaltyCollectionEntity String? // Songtrust, CD Baby Pro, etc.
+  splitConfirmation Boolean @default(false) // Confirmation that splits are correct
+
+  // Pricing - New approach
+  trackPricing TrackPricing[] // Separate table for efficient querying
+
   plays       Play[]
   earnings    Earning[]
   messageThreads MessageThread[]
   purchases   Purchase[]
   messages    Message[]
   deals       Deal[]
-  basePrice   Float?   // Base price for standard license
-  isNegotiable Boolean @default(false) // Whether price is negotiable
+  basePrice   Float?   // Legacy field - to be deprecated
+  isNegotiable Boolean @default(false) // Legacy field - to be deprecated
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   likes       Like[]
@@ -110,6 +134,35 @@ model Track {
 
   @@index([userId])
   @@index([artistTier])
+}
+
+// New table for efficient pricing queries
+model TrackPricing {
+  id              String   @id @default(cuid())
+  trackId         String
+  track           Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  mediaTypeId     String   // 'film', 'tv', 'youtube', etc.
+  mediaTypeCategory String // 'traditional' or 'digital'
+
+  // Pricing structure
+  basePrice       Float    // Hidden from buyers, used for negotiations
+  buyoutPrice     Float?   // Optional, visible to buyers for instant purchase
+
+  // Derived fields for efficient querying
+  hasInstantBuy   Boolean  @default(false) // buyoutPrice IS NOT NULL
+  lowestPrice     Float    // MIN(basePrice, buyoutPrice) for sorting
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([trackId])
+  @@index([mediaTypeId])
+  @@index([mediaTypeCategory])
+  @@index([hasInstantBuy])
+  @@index([lowestPrice])
+  @@index([buyoutPrice])
+  @@unique([trackId, mediaTypeId])
 }
 
 model Play {

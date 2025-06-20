@@ -1,7 +1,7 @@
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { GENRES, MOODS } from "@/constants/music";
+import { GENRES, MOODS, getMediaTypeCategory } from "@/constants/music";
 import { prisma } from "@/server/db";
 import { type Prisma } from "@prisma/client";
 import { uploadToBlob } from "@/lib/blob";
@@ -169,6 +169,25 @@ export const trackRouter = createTRPCRouter({
         genres: true,
         moods: true,
         createdAt: true,
+        // Basic Song Info
+        isrcCode: true,
+        iswcCode: true,
+        // Ownership & Rights
+        ownsFullRights: true,
+        masterOwners: true,
+        publishingOwners: true,
+        songwriters: true,
+        // Sync Licensing Preferences
+        minimumSyncFee: true,
+        allowedMediaTypes: true,
+        licenseType: true,
+        canBeModified: true,
+        disallowedUses: true,
+        // Revenue & Payment Info
+        royaltyCollectionEntity: true,
+        splitConfirmation: true,
+        basePrice: true,
+        isNegotiable: true,
         _count: {
           select: {
             plays: true,
@@ -180,6 +199,17 @@ export const trackRouter = createTRPCRouter({
             id: true,
             name: true,
             profilePicture: true,
+          },
+        },
+        trackPricing: {
+          select: {
+            id: true,
+            mediaTypeId: true,
+            mediaTypeCategory: true,
+            basePrice: true,
+            buyoutPrice: true,
+            hasInstantBuy: true,
+            lowestPrice: true,
           },
         },
       },
@@ -241,11 +271,41 @@ export const trackRouter = createTRPCRouter({
         genres: z.array(genreEnum).min(1),
         moods: z.array(moodEnum).min(1),
         bpm: z.number().min(1).max(999).optional(),
+        isrcCode: z.string().optional(),
+        iswcCode: z.string().optional(),
         audioUrl: z.string().url(),
         duration: z.number().min(0),
         waveformData: z.array(z.number()).optional(),
+        ownsFullRights: z.boolean().default(true),
+        masterOwners: z.array(z.object({
+          name: z.string(),
+          email: z.string().email(),
+          percentage: z.number().min(0).max(100),
+        })).default([]),
+        publishingOwners: z.array(z.object({
+          name: z.string(),
+          email: z.string().email(),
+          percentage: z.number().min(0).max(100),
+        })).default([]),
+        songwriters: z.array(z.object({
+          name: z.string(),
+          email: z.string().email(),
+          role: z.string(),
+        })).default([]),
+        minimumSyncFee: z.number().min(0).optional(),
+        allowedMediaTypes: z.array(z.string()).default([]),
+        licenseType: z.string().default('non-exclusive'),
+        canBeModified: z.boolean().default(false),
+        disallowedUses: z.string().optional(),
+        mediaTypePricing: z.array(z.object({
+          mediaTypeId: z.string(),
+          basePrice: z.number().optional(),
+          buyoutPrice: z.number().optional(),
+        })).default([]),
+        royaltyCollectionEntity: z.string().optional(),
+        splitConfirmation: z.boolean().default(false),
         basePrice: z.number().min(0).optional(),
-        isNegotiable: z.boolean().optional(),
+        isNegotiable: z.boolean().default(false),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -258,24 +318,72 @@ export const trackRouter = createTRPCRouter({
         });
       }
 
-      // Create the track record
-      const track = await prisma.track.create({
-        data: {
-          title: input.title,
-          description: input.description,
-          genres: input.genres,
-          moods: input.moods,
-          bpm: input.bpm,
-          audioUrl: input.audioUrl,
-          duration: input.duration,
-          waveformData: input.waveformData,
-          basePrice: input.basePrice,
-          isNegotiable: input.isNegotiable,
-          userId: user.id,
-        },
+      // Use transaction to create track and pricing records together
+      const result = await prisma.$transaction(async (tx) => {
+        // Create the track record first
+        const track = await tx.track.create({
+          data: {
+            title: input.title,
+            description: input.description,
+            genres: input.genres,
+            moods: input.moods,
+            bpm: input.bpm,
+            isrcCode: input.isrcCode,
+            iswcCode: input.iswcCode,
+            audioUrl: input.audioUrl,
+            duration: input.duration,
+            waveformData: input.waveformData,
+            ownsFullRights: input.ownsFullRights,
+            masterOwners: input.masterOwners,
+            publishingOwners: input.publishingOwners,
+            songwriters: input.songwriters,
+            minimumSyncFee: input.minimumSyncFee,
+            allowedMediaTypes: input.allowedMediaTypes,
+            licenseType: input.licenseType,
+            canBeModified: input.canBeModified,
+            disallowedUses: input.disallowedUses,
+            royaltyCollectionEntity: input.royaltyCollectionEntity,
+            splitConfirmation: input.splitConfirmation,
+            basePrice: input.basePrice,
+            isNegotiable: input.isNegotiable,
+            userId: user.id,
+          },
+        });
+
+        // Create pricing records for each media type
+        if (input.mediaTypePricing && input.mediaTypePricing.length > 0) {
+          const pricingData = input.mediaTypePricing.map((pricing) => {
+            const category = getMediaTypeCategory(pricing.mediaTypeId);
+            const lowestPrice = pricing.buyoutPrice
+              ? Math.min(pricing.basePrice || 0, pricing.buyoutPrice)
+              : (pricing.basePrice || 0);
+
+            return {
+              trackId: track.id,
+              mediaTypeId: pricing.mediaTypeId,
+              mediaTypeCategory: category,
+              basePrice: pricing.basePrice || 0,
+              buyoutPrice: pricing.buyoutPrice || null,
+              hasInstantBuy: Boolean(pricing.buyoutPrice && pricing.buyoutPrice > 0),
+              lowestPrice: lowestPrice,
+            };
+          });
+
+          await tx.trackPricing.createMany({
+            data: pricingData,
+          });
+        }
+
+        // Return track with pricing data
+        return await tx.track.findUnique({
+          where: { id: track.id },
+          include: {
+            trackPricing: true,
+          },
+        });
       });
 
-      return track;
+      return result;
     }),
 
   // Fetch public tracks with tier-based filtering for buyers
@@ -288,6 +396,11 @@ export const trackRouter = createTRPCRouter({
         bpmMax: z.number().optional(),
         page: z.number().optional(),
         limit: z.number().optional(),
+        // New pricing filters
+        priceMin: z.number().optional(),
+        priceMax: z.number().optional(),
+        hasInstantBuy: z.boolean().optional(),
+        mediaTypes: z.array(z.string()).optional(),
         /**
          * For PRO buyers we allow a toggle to show the entire catalogue (Artist & Label) rather than
          * just the default Rostered tier. The flag has no effect for other roles.
@@ -296,7 +409,7 @@ export const trackRouter = createTRPCRouter({
       })
     )
     .query(async ({ input, ctx }) => {
-      const { genres, moods, bpmMin, bpmMax, page = 1, limit = 10, showAll = false } = input;
+      const { genres, moods, bpmMin, bpmMax, page = 1, limit = 10, showAll = false, priceMin, priceMax, hasInstantBuy, mediaTypes } = input;
 
       // Build dynamic filters
       const andFilters: Prisma.TrackWhereInput[] = [];
@@ -362,6 +475,33 @@ export const trackRouter = createTRPCRouter({
         });
       }
 
+      // 3. Pricing filters
+      if (priceMin !== undefined || priceMax !== undefined || hasInstantBuy !== undefined || mediaTypes?.length) {
+        const pricingFilters: any = {};
+
+        if (priceMin !== undefined) {
+          pricingFilters.lowestPrice = { gte: priceMin };
+        }
+
+        if (priceMax !== undefined) {
+          pricingFilters.lowestPrice = { ...pricingFilters.lowestPrice, lte: priceMax };
+        }
+
+        if (hasInstantBuy !== undefined) {
+          pricingFilters.hasInstantBuy = hasInstantBuy;
+        }
+
+        if (mediaTypes?.length) {
+          pricingFilters.mediaTypeId = { in: mediaTypes };
+        }
+
+        andFilters.push({
+          trackPricing: {
+            some: pricingFilters,
+          },
+        });
+      }
+
       const whereClause: Prisma.TrackWhereInput = andFilters.length > 0 ? { AND: andFilters } : {};
 
       const tracks = await prisma.track.findMany({
@@ -384,6 +524,17 @@ export const trackRouter = createTRPCRouter({
               name: true,
               profilePicture: true,
               tier: true,
+            },
+          },
+          trackPricing: {
+            select: {
+              id: true,
+              mediaTypeId: true,
+              mediaTypeCategory: true,
+              basePrice: true,
+              buyoutPrice: true,
+              hasInstantBuy: true,
+              lowestPrice: true,
             },
           },
         },
@@ -502,6 +653,11 @@ export const trackRouter = createTRPCRouter({
 
       // Perform cascading delete - remove all related records first
       await prisma.$transaction(async (tx) => {
+        // Delete track pricing records
+        await tx.trackPricing.deleteMany({
+          where: { trackId: input.id },
+        });
+
         // Delete likes for this track
         await tx.like.deleteMany({
           where: { trackId: input.id },
